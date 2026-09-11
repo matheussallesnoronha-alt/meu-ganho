@@ -234,12 +234,24 @@
   .hist-chips{ display:flex; flex-wrap:wrap; gap:8px; }
   .hist-chips .chip{ font-size:11.5px; font-weight:600; color:var(--text-secondary); background:var(--surface-2); border-radius:999px; padding:4px 10px; }
   .hist-notes{ font-size:12px; color:var(--text-muted); margin-top:6px; }
+  .hist-actions{ display:flex; flex-direction:column; gap:6px; flex-shrink:0; }
+  .hist-edit{
+    border:none; background: var(--surface-2); color:var(--text-secondary); font-size:13px; cursor:pointer;
+    width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+  }
+  .hist-edit:hover{ background: var(--good-soft); color:var(--good); }
   .hist-del{
     border:none; background: var(--critical-soft); color:var(--critical); font-size:14px; cursor:pointer;
     width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
   }
   .hist-del:hover{ background: rgba(245,69,95,0.3); }
   .hist-del.confirm{ background: var(--critical); color:#fff; }
+  .edit-banner{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background: var(--good-soft); border:1px solid var(--border); border-radius:10px;
+    padding:9px 12px; margin-bottom:14px; font-size:12.5px; color:var(--text-primary);
+  }
+  .edit-banner button{ background:transparent; border:none; color:var(--critical); font-weight:700; font-size:12.5px; cursor:pointer; }
   .hist-more{ font-size:12px; color:var(--text-muted); margin:12px 0 0; text-align:center; }
   .empty{ font-size:13px; color:var(--text-muted); text-align:center; padding:24px 0; }
 
@@ -357,6 +369,10 @@
     <h2>Adicionar registro</h2>
     <div class="form-card">
       <form id="entry-form">
+        <div class="edit-banner" id="edit-banner" hidden>
+          <span>✏️ Editando registro</span>
+          <button type="button" id="cancel-edit">cancelar</button>
+        </div>
         <div class="segmented" id="kind-toggle">
           <button type="button" class="seg-btn active" data-kind="session">Sessão de trabalho</button>
           <button type="button" class="seg-btn" data-kind="expense">Despesa</button>
@@ -628,6 +644,24 @@
       state.entries.push(data);
       saveLocalEntries();
       setStatus("local");
+      renderAll();
+    }
+  }
+
+  async function updateEntry(id, data){
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try {
+        var res = await sb.from("entries").update(entryToRow(data)).eq("id", id);
+        if (res.error) throw res.error;
+        await refetchEntries();
+        setStatus("ok");
+        renderAll();
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      var idx = state.entries.findIndex(function(e){ return e.id === id; });
+      if (idx > -1) state.entries[idx] = Object.assign({}, data, { id: id, createdAt: state.entries[idx].createdAt });
+      saveLocalEntries();
       renderAll();
     }
   }
@@ -914,7 +948,7 @@
           +   '</div>'
           +   (e.notes ? '<div class="hist-notes">'+escapeHtml(e.notes)+'</div>' : '')
           + '</div>'
-          + '<button class="hist-del" data-id="'+e.id+'" title="Excluir">🗑</button>'
+          + '<div class="hist-actions"><button class="hist-edit" data-id="'+e.id+'" title="Editar">✏️</button><button class="hist-del" data-id="'+e.id+'" title="Excluir">🗑</button></div>'
           + '</div>';
       } else {
         html += '<div class="hist-card">'
@@ -923,7 +957,7 @@
           +   '<div class="hist-numbers"><div><span class="hist-num-label">'+escapeHtml(e.category)+'</span><span class="hist-num-value negative">-'+fmtBRL(e.amount)+'</span></div></div>'
           +   (e.notes ? '<div class="hist-notes">'+escapeHtml(e.notes)+'</div>' : '')
           + '</div>'
-          + '<button class="hist-del" data-id="'+e.id+'" title="Excluir">🗑</button>'
+          + '<div class="hist-actions"><button class="hist-edit" data-id="'+e.id+'" title="Editar">✏️</button><button class="hist-del" data-id="'+e.id+'" title="Excluir">🗑</button></div>'
           + '</div>';
       }
     });
@@ -951,17 +985,71 @@
   });
 
   var currentKind = "session";
-  document.getElementById("kind-toggle").addEventListener("click", function(e){
-    var btn = e.target.closest(".seg-btn");
-    if (!btn) return;
-    currentKind = btn.getAttribute("data-kind");
-    document.querySelectorAll("#kind-toggle .seg-btn").forEach(function(b){ b.classList.toggle("active", b===btn); });
-    var isSession = currentKind === "session";
+  var editingId = null;
+
+  function applyKind(kind){
+    currentKind = kind;
+    document.querySelectorAll("#kind-toggle .seg-btn").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-kind") === kind);
+    });
+    var isSession = kind === "session";
     document.getElementById("wrap-session-apps").hidden = !isSession;
     document.getElementById("wrap-hours").hidden = !isSession;
     document.getElementById("wrap-km").hidden = !isSession;
     document.getElementById("wrap-category").hidden = isSession;
     document.getElementById("wrap-amount").hidden = isSession;
+  }
+
+  function clearForm(){
+    ["f-uber-earnings","f-uber-rides","f-app99-earnings","f-app99-rides","f-particular-earnings","f-particular-rides","f-hours","f-km","f-amount","f-notes"].forEach(function(id){
+      document.getElementById(id).value = "";
+    });
+  }
+
+  function stopEditing(){
+    editingId = null;
+    document.getElementById("edit-banner").hidden = true;
+    document.querySelector("#entry-form .btn-primary").textContent = "Adicionar registro";
+    applyKind("session");
+    document.getElementById("f-date").value = todayStr();
+    clearForm();
+  }
+
+  function startEditing(entry){
+    editingId = entry.id;
+    document.getElementById("edit-banner").hidden = false;
+    document.querySelector("#entry-form .btn-primary").textContent = "Salvar edição";
+    document.getElementById("form-error").hidden = true;
+    document.getElementById("f-date").value = entry.date;
+    document.getElementById("f-notes").value = entry.notes || "";
+    if (entry.kind === "session"){
+      applyKind("session");
+      var apps = entryApps(entry);
+      document.getElementById("f-uber-earnings").value = apps.Uber.earnings || "";
+      document.getElementById("f-uber-rides").value = apps.Uber.rides || "";
+      document.getElementById("f-app99-earnings").value = apps["99"].earnings || "";
+      document.getElementById("f-app99-rides").value = apps["99"].rides || "";
+      document.getElementById("f-particular-earnings").value = apps.Particular.earnings || "";
+      document.getElementById("f-particular-rides").value = apps.Particular.rides || "";
+      document.getElementById("f-hours").value = entry.hours || "";
+      document.getElementById("f-km").value = entry.km || "";
+    } else {
+      applyKind("expense");
+      document.getElementById("f-category").value = entry.category;
+      document.getElementById("f-amount").value = entry.amount || "";
+    }
+    var section = document.getElementById("add-form");
+    if (section && section.scrollIntoView) section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  document.getElementById("kind-toggle").addEventListener("click", function(e){
+    var btn = e.target.closest(".seg-btn");
+    if (!btn) return;
+    applyKind(btn.getAttribute("data-kind"));
+  });
+
+  document.getElementById("cancel-edit").addEventListener("click", function(){
+    stopEditing();
   });
 
   document.getElementById("entry-form").addEventListener("submit", function(e){
@@ -969,6 +1057,7 @@
     var errorEl = document.getElementById("form-error");
     errorEl.hidden = true;
     var date = document.getElementById("f-date").value || todayStr();
+    var wasEditing = editingId;
     if (currentKind === "session"){
       var hours = parseFloat(document.getElementById("f-hours").value);
       if (isNaN(hours)){
@@ -989,10 +1078,9 @@
       }
       var km = parseFloat(document.getElementById("f-km").value) || 0;
       var notes = document.getElementById("f-notes").value.trim();
-      addEntry({ kind: "session", date: date, hours: hours, km: km, apps: apps, notes: notes });
-      ["f-uber-earnings","f-uber-rides","f-app99-earnings","f-app99-rides","f-particular-earnings","f-particular-rides","f-hours","f-km"].forEach(function(id){
-        document.getElementById(id).value = "";
-      });
+      var sessionData = { kind: "session", date: date, hours: hours, km: km, apps: apps, notes: notes };
+      if (wasEditing) updateEntry(wasEditing, sessionData);
+      else addEntry(sessionData);
     } else {
       var amount = parseFloat(document.getElementById("f-amount").value);
       if (isNaN(amount)){
@@ -1000,19 +1088,27 @@
         errorEl.hidden = false;
         return;
       }
-      addEntry({
+      var expenseData = {
         kind: "expense",
         date: date,
         category: document.getElementById("f-category").value,
         amount: amount,
         notes: document.getElementById("f-notes").value.trim()
-      });
-      document.getElementById("f-amount").value = "";
+      };
+      if (wasEditing) updateEntry(wasEditing, expenseData);
+      else addEntry(expenseData);
     }
-    document.getElementById("f-notes").value = "";
+    if (wasEditing) stopEditing();
+    else clearForm();
   });
 
   document.getElementById("history-list").addEventListener("click", function(e){
+    var editBtn = e.target.closest(".hist-edit");
+    if (editBtn){
+      var entry = state.entries.find(function(x){ return x.id === editBtn.getAttribute("data-id"); });
+      if (entry) startEditing(entry);
+      return;
+    }
     var btn = e.target.closest(".hist-del");
     if (!btn) return;
     var id = btn.getAttribute("data-id");
@@ -1035,11 +1131,7 @@
 
   document.getElementById("f-date").value = todayStr();
   document.getElementById("footer-note").textContent = "Seus dados ficam guardados neste painel — nada é enviado para o Uber, 99 ou outros apps.";
-  document.getElementById("wrap-session-apps").hidden = false;
-  document.getElementById("wrap-hours").hidden = false;
-  document.getElementById("wrap-km").hidden = false;
-  document.getElementById("wrap-category").hidden = true;
-  document.getElementById("wrap-amount").hidden = true;
+  applyKind("session");
 
   setStatus("connecting");
   initStore();
