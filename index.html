@@ -1,0 +1,961 @@
+<title>Meu Ganho</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+<style>
+  :root{
+    color-scheme: dark;
+    --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Manrope", ui-monospace, monospace;
+
+    --bg: #0a0e18;
+    --surface: #121a2c;
+    --surface-2: #1a2338;
+    --text-primary: #ffffff;
+    --text-secondary: #8a93a8;
+    --text-muted: #5c6478;
+    --border: rgba(255,255,255,0.08);
+    --grid: #232c42;
+
+    --accent: #22c55e;
+    --accent-strong: #16a34a;
+    --accent-contrast: #ffffff;
+
+    --good: #22c55e;
+    --good-soft: rgba(34,197,94,0.15);
+    --warning: #f2c94c;
+    --critical: #f5455f;
+    --critical-soft: rgba(245,69,95,0.15);
+    --blue: #4da8ff;
+    --blue-soft: rgba(77,168,255,0.15);
+
+    --series-1: #4da8ff; /* Uber */
+    --series-2: #ff8a3d; /* 99 */
+    --series-3: #22c55e; /* Particular */
+  }
+
+  *{ box-sizing: border-box; }
+  body{
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 920px; margin: 0 auto; padding: 20px 16px 64px; }
+
+  /* ---------- header ---------- */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .brand{ display:flex; align-items:center; gap:12px; }
+  .badge{
+    width:44px; height:44px; border-radius:50%; flex-shrink:0; padding:3px;
+    background: conic-gradient(var(--accent) 0deg 260deg, var(--border) 260deg 360deg);
+  }
+  .badge-inner{
+    width:100%; height:100%; border-radius:50%; background:var(--bg);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:14px; color:var(--text-primary);
+  }
+  .brand h1{ font-size:20px; font-weight:800; margin:0; line-height:1.15; letter-spacing:-0.01em; }
+  .brand .tagline{ margin:1px 0 0; font-size:10.5px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:0.06em; }
+  .btn-pill-primary{
+    display:inline-flex; align-items:center; gap:6px; background:var(--accent); color:#fff;
+    font-weight:700; font-size:13.5px; padding:11px 18px; border-radius:999px; text-decoration:none;
+    white-space:nowrap; flex-shrink:0; border:none; cursor:pointer;
+  }
+  .btn-pill-primary:hover{ background:var(--accent-strong); }
+
+  .sync-row{ display:flex; justify-content:flex-end; margin: 10px 0 22px; }
+  .status-chip{ display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--text-secondary); }
+  .status-dot{ width:7px; height:7px; border-radius:50%; background:var(--text-muted); flex-shrink:0; }
+  .status-chip.ok{ color: var(--good); }
+  .status-chip.ok .status-dot{ background: var(--good); }
+  .status-chip.saving{ color: var(--warning); }
+  .status-chip.saving .status-dot{ background: var(--warning); animation: pulse 1s infinite ease-in-out; }
+  .status-chip.error{ color: var(--critical); }
+  .status-chip.error .status-dot{ background: var(--critical); }
+  .status-chip.local{ color: var(--blue); }
+  .status-chip.local .status-dot{ background: var(--blue); }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.35; } }
+
+  .banner{
+    background: var(--good-soft); border:1px solid var(--border); border-left:3px solid var(--accent);
+    color:var(--text-primary); border-radius:12px; padding:10px 14px; font-size:13px; margin-bottom:16px; line-height:1.5;
+  }
+
+  section{ margin-bottom: 30px; }
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  h2{ font-family: var(--font-sans); font-size:19px; font-weight:800; color:var(--text-primary); margin:0; }
+  .section-sub{ font-size:12px; color:var(--text-secondary); margin-top:4px; }
+
+  select{
+    font-family: var(--font-sans); font-size:13px; padding:9px 12px; border-radius:10px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+  }
+
+  /* ---------- hero + tiles ---------- */
+  .hero{
+    background: var(--surface); border:1px solid rgba(34,197,94,0.35); border-radius:20px;
+    padding:22px 20px; margin-bottom:14px;
+  }
+  .hero-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .hero .label{ font-size:13px; color:var(--text-secondary); }
+  .hero-spark{ width:44px; height:26px; opacity:0.9; flex-shrink:0; }
+  .hero-spark rect{ fill: var(--accent); }
+  .hero .value{ font-size:40px; font-weight:800; font-variant-numeric: tabular-nums; letter-spacing:-0.01em; margin-top:10px; }
+  .hero .value.negative{ color: var(--critical); }
+  .hero .sub{ font-size:12.5px; color:var(--text-muted); margin-top:6px; }
+
+  .tiles{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .tile{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:16px; }
+  .tile .t-icon{ width:32px; height:32px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:15px; margin-bottom:10px; background:var(--surface-2); }
+  .tile .t-label{ font-size:12px; color:var(--text-secondary); margin-bottom:4px; }
+  .tile .t-value{ font-size:19px; font-weight:700; font-variant-numeric: tabular-nums; color:var(--text-primary); }
+  .tile.tone-good .t-icon{ background:var(--good-soft); color:var(--good); }
+  .tile.tone-good .t-value{ color:var(--good); }
+  .tile.tone-bad .t-icon{ background:var(--critical-soft); color:var(--critical); }
+  .tile.tone-bad .t-value{ color:var(--critical); }
+  .tile.tone-info .t-icon{ background:var(--blue-soft); color:var(--blue); }
+
+  /* ---------- goal ---------- */
+  .goal-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
+  .ring-row{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
+  .ring-wrap{ position:relative; width:112px; height:112px; flex-shrink:0; }
+  .ring-svg{ width:112px; height:112px; transform:rotate(-90deg); }
+  .ring-track{ fill:none; stroke:var(--surface-2); stroke-width:10; }
+  .ring-fill{ fill:none; stroke:var(--accent); stroke-width:10; stroke-linecap:round;
+    stroke-dasharray:326.7; stroke-dashoffset:326.7; transition: stroke-dashoffset 0.4s ease; }
+  .ring-fill.reached{ stroke: var(--good); }
+  .ring-center{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ring-center span{ font-size:21px; font-weight:800; color:var(--text-primary); }
+  .ring-center small{ font-size:9.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.04em; }
+  .ring-info{ flex:1; min-width:180px; }
+  .goal-card .goal-title{ font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:8px; }
+  .goal-input-row{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-secondary); margin-bottom:8px; }
+  .goal-input-row input{
+    width:100px; font-family: var(--font-sans); font-size:13px; padding:6px 9px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+  }
+  .goal-foot{ display:flex; gap:14px; font-size:12.5px; color:var(--text-muted); font-variant-numeric: tabular-nums; }
+
+  /* ---------- chart ---------- */
+  .chart-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; position:relative; }
+  .chart-scroll{ overflow-x:auto; }
+  #chart-svg{ display:block; }
+  #chart-svg.fluid{ width:100%; height:auto; }
+  .chart-legend{ display:flex; flex-wrap:wrap; gap:14px; margin-top:10px; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-secondary); }
+  .legend-item .swatch{ width:10px; height:10px; border-radius:3px; display:inline-block; }
+  .chart-empty{ font-size:13px; color:var(--text-muted); text-align:center; padding:40px 0; }
+  .chart-tooltip{
+    position:fixed; pointer-events:none; background:var(--text-primary); color:var(--bg);
+    font-size:12px; border-radius:10px; padding:8px 10px; line-height:1.5; z-index:50;
+    box-shadow:0 4px 16px rgba(0,0,0,0.4); max-width:220px; font-family: var(--font-sans);
+  }
+  .chart-tooltip .tt-date{ font-weight:700; margin-bottom:4px; }
+  .chart-tooltip .tt-row{ display:flex; justify-content:space-between; gap:10px; }
+  .chart-tooltip[hidden]{ display:none; }
+
+  /* ---------- shared pill tabs ---------- */
+  .segmented{ display:inline-flex; background:var(--surface-2); border-radius:999px; padding:4px; margin-bottom:18px; gap:4px; flex-wrap:wrap; }
+  .seg-btn{
+    font-family: var(--font-sans); font-size:13px; font-weight:600; padding:9px 18px; border-radius:999px;
+    border:none; background:transparent; color:var(--text-secondary); cursor:pointer;
+  }
+  .seg-btn.active{ background:var(--accent); color:#fff; }
+
+  /* ---------- form ---------- */
+  .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
+  .app-breakdown{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
+  .app-row{ display:grid; grid-template-columns:64px 1fr 1fr; gap:10px; align-items:end; background:var(--surface-2); border-radius:12px; padding:10px 12px; }
+  .app-row-label{ font-weight:800; font-size:13px; padding-bottom:10px; }
+  .app-row label{ display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-secondary); }
+  .app-row input{
+    font-family: var(--font-sans); font-size:14px; padding:9px 10px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface); color:var(--text-primary);
+  }
+  .form-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
+  .form-grid label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--text-secondary); }
+  .form-grid label.full{ grid-column:1/-1; }
+  .form-grid input, .form-grid select{
+    font-family: var(--font-sans); font-size:14px; padding:10px 11px; border-radius:10px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+  }
+  .form-grid input:focus, .form-grid select:focus, .app-row input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+  .form-error{ font-size:12px; color:var(--critical); margin:-4px 0 10px; }
+  .btn-primary{
+    font-family: var(--font-sans); font-size:14px; font-weight:700; padding:12px 22px; border-radius:999px;
+    border:none; background:var(--accent); color:#fff; cursor:pointer;
+  }
+  .btn-primary:hover{ background:var(--accent-strong); }
+  .btn-primary:active{ transform: translateY(1px); }
+
+  /* ---------- history ---------- */
+  .history-card{ background:transparent; padding:0; }
+  .hist-card{ display:flex; align-items:flex-start; gap:14px; background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:14px; margin-bottom:10px; }
+  .hist-daybox{ display:flex; flex-direction:column; align-items:center; justify-content:center; background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:8px 10px; min-width:60px; text-align:center; flex-shrink:0; }
+  .hist-weekday{ font-size:10.5px; color:var(--text-secondary); text-transform:capitalize; }
+  .hist-day{ font-size:21px; font-weight:800; color:var(--text-primary); line-height:1.15; }
+  .hist-fulldate{ font-size:9px; color:var(--text-muted); }
+  .hist-main{ flex:1; min-width:0; }
+  .hist-numbers{ display:flex; gap:22px; flex-wrap:wrap; margin-bottom:8px; }
+  .hist-numbers > div{ display:flex; flex-direction:column; gap:2px; }
+  .hist-num-label{ font-size:11px; color:var(--text-secondary); }
+  .hist-num-value{ font-size:17px; font-weight:700; color:var(--good); font-variant-numeric: tabular-nums; }
+  .hist-num-value.negative{ color: var(--critical); }
+  .hist-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+  .hist-chips .chip{ font-size:11.5px; font-weight:600; color:var(--text-secondary); background:var(--surface-2); border-radius:999px; padding:4px 10px; }
+  .hist-notes{ font-size:12px; color:var(--text-muted); margin-top:6px; }
+  .hist-del{
+    border:none; background: var(--critical-soft); color:var(--critical); font-size:14px; cursor:pointer;
+    width:34px; height:34px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  }
+  .hist-del:hover{ background: rgba(245,69,95,0.3); }
+  .hist-del.confirm{ background: var(--critical); color:#fff; }
+  .hist-more{ font-size:12px; color:var(--text-muted); margin:12px 0 0; text-align:center; }
+  .empty{ font-size:13px; color:var(--text-muted); text-align:center; padding:24px 0; }
+
+  footer.note{ font-size:11px; color:var(--text-muted); text-align:center; margin-top:12px; }
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <span class="badge"><span class="badge-inner">MG</span></span>
+      <div>
+        <h1>Meu Ganho</h1>
+        <p class="tagline">Faça cada km valer</p>
+      </div>
+    </div>
+    <a href="#add-form" class="btn-pill-primary">+ Registrar</a>
+  </div>
+  <div class="sync-row">
+    <span class="status-chip" id="status-chip"><span class="status-dot"></span><span id="status-text">Conectando…</span></span>
+  </div>
+
+  <div id="local-banner" class="banner" hidden>
+    💾 Este ambiente não oferece armazenamento na nuvem para este painel — os dados estão sendo salvos apenas neste navegador (localStorage). Evite limpar os dados do navegador para não perdê-los.
+  </div>
+
+  <section>
+    <div class="section-head">
+      <div>
+        <h2>Resultado</h2>
+        <div class="section-sub" id="period-label">Semana atual</div>
+      </div>
+      <select id="filter-app">
+        <option value="all">Todos os apps</option>
+        <option value="Uber">Uber</option>
+        <option value="99">99</option>
+        <option value="Particular">Particular</option>
+      </select>
+    </div>
+    <div class="segmented" id="period-toggle">
+      <button type="button" class="seg-btn active" data-period="semana">Semana</button>
+      <button type="button" class="seg-btn" data-period="7d">7 dias</button>
+      <button type="button" class="seg-btn" data-period="14d">14 dias</button>
+      <button type="button" class="seg-btn" data-period="31d">31 dias</button>
+    </div>
+    <div class="hero">
+      <div class="hero-top">
+        <div class="label">Resultado líquido</div>
+        <svg class="hero-spark" viewBox="0 0 40 24" aria-hidden="true">
+          <rect x="0" y="14" width="5" height="10" rx="1.5"></rect>
+          <rect x="9" y="10" width="5" height="14" rx="1.5"></rect>
+          <rect x="18" y="6" width="5" height="18" rx="1.5"></rect>
+          <rect x="27" y="2" width="5" height="22" rx="1.5"></rect>
+          <rect x="36" y="8" width="4" height="16" rx="1.5"></rect>
+        </svg>
+      </div>
+      <div class="value" id="tile-net">R$ 0,00</div>
+      <div class="sub" id="hero-sub">Faturamento menos despesas no período selecionado</div>
+    </div>
+    <div class="tiles">
+      <div class="tile tone-good"><div class="t-icon">↗</div><div class="t-label">Faturamento bruto</div><div class="t-value" id="tile-gross">R$ 0,00</div></div>
+      <div class="tile tone-bad"><div class="t-icon">⛽</div><div class="t-label">Despesas</div><div class="t-value" id="tile-expenses">R$ 0,00</div></div>
+      <div class="tile tone-info"><div class="t-icon">🧭</div><div class="t-label">Corridas</div><div class="t-value" id="tile-rides">0</div></div>
+      <div class="tile tone-info"><div class="t-icon">🕐</div><div class="t-label">Horas trabalhadas</div><div class="t-value" id="tile-hours">0h</div></div>
+      <div class="tile tone-good"><div class="t-icon">⚡</div><div class="t-label">Lucro por hora</div><div class="t-value" id="tile-perhour">R$ 0,00</div></div>
+      <div class="tile tone-info"><div class="t-icon">📍</div><div class="t-label">R$ por km (bruto)</div><div class="t-value" id="tile-perkm">—</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Meta da semana</h2>
+    <div class="goal-card">
+      <div class="ring-row">
+        <div class="ring-wrap">
+          <svg class="ring-svg" viewBox="0 0 120 120">
+            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
+            <circle class="ring-fill" id="progress-goal" cx="60" cy="60" r="52"></circle>
+          </svg>
+          <div class="ring-center"><span id="ring-pct">0%</span><small>da meta</small></div>
+        </div>
+        <div class="ring-info">
+          <div class="goal-title" id="goal-week-label">Semana atual</div>
+          <div class="goal-input-row">Meta: R$ <input type="number" id="goal-input" min="0" step="10"></div>
+          <div class="goal-foot"><span id="goal-current">R$ 0,00</span><span id="goal-target">meta R$ 0,00</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2 id="chart-title">Faturamento por dia — Semana atual</h2>
+    <div class="chart-card">
+      <div class="chart-scroll"><svg id="chart-svg" viewBox="0 0 700 220"></svg></div>
+      <div class="chart-legend" id="chart-legend" hidden></div>
+      <div class="chart-empty" id="chart-empty" hidden></div>
+    </div>
+  </section>
+
+  <section id="add-form">
+    <h2>Adicionar registro</h2>
+    <div class="form-card">
+      <form id="entry-form">
+        <div class="segmented" id="kind-toggle">
+          <button type="button" class="seg-btn active" data-kind="session">Sessão de trabalho</button>
+          <button type="button" class="seg-btn" data-kind="expense">Despesa</button>
+        </div>
+        <div class="form-grid">
+          <label>Data
+            <input type="date" id="f-date" required>
+          </label>
+        </div>
+
+        <div id="wrap-session-apps" class="app-breakdown">
+          <div class="app-row">
+            <span class="app-row-label" style="color:var(--series-1)">Uber</span>
+            <label>Faturamento (R$)<input type="number" id="f-uber-earnings" min="0" step="0.01" placeholder="0,00"></label>
+            <label>Corridas<input type="number" id="f-uber-rides" min="0" step="1" placeholder="0"></label>
+          </div>
+          <div class="app-row">
+            <span class="app-row-label" style="color:var(--series-2)">99</span>
+            <label>Faturamento (R$)<input type="number" id="f-app99-earnings" min="0" step="0.01" placeholder="0,00"></label>
+            <label>Corridas<input type="number" id="f-app99-rides" min="0" step="1" placeholder="0"></label>
+          </div>
+          <div class="app-row">
+            <span class="app-row-label" style="color:var(--series-3)">Particular</span>
+            <label>Faturamento (R$)<input type="number" id="f-particular-earnings" min="0" step="0.01" placeholder="0,00"></label>
+            <label>Corridas<input type="number" id="f-particular-rides" min="0" step="1" placeholder="0"></label>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label id="wrap-hours">Horas trabalhadas
+            <input type="number" id="f-hours" min="0" step="0.1" placeholder="0,0">
+          </label>
+          <label id="wrap-km">Km rodados (opcional)
+            <input type="number" id="f-km" min="0" step="1" placeholder="0">
+          </label>
+          <label id="wrap-category" hidden>Categoria
+            <select id="f-category">
+              <option>Combustível</option>
+              <option>Manutenção</option>
+              <option>Aluguel/Financiamento</option>
+              <option>Seguro</option>
+              <option>Outro</option>
+            </select>
+          </label>
+          <label id="wrap-amount" hidden>Valor (R$)
+            <input type="number" id="f-amount" min="0" step="0.01" placeholder="0,00">
+          </label>
+          <label class="full">Observações (opcional)
+            <input type="text" id="f-notes" maxlength="140" placeholder="ex: pneu, pedágio, plantão de sábado...">
+          </label>
+        </div>
+        <p class="form-error" id="form-error" hidden></p>
+        <button type="submit" class="btn-primary">Adicionar registro</button>
+      </form>
+    </div>
+  </section>
+
+  <section>
+    <h2>Histórico</h2>
+    <div class="history-card">
+      <div id="history-list"></div>
+    </div>
+  </section>
+
+  <footer class="note" id="footer-note"></footer>
+</div>
+
+<div class="chart-tooltip" id="chart-tooltip" hidden></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var APP_KEYS = ["Uber","99","Particular"];
+  var SERIES_VAR = { "Uber":"--series-1", "99":"--series-2", "Particular":"--series-3" };
+  var MAX_CHART_DAYS = 120;
+  var RING_CIRC = 2 * Math.PI * 52;
+  var PERIOD_NAMES = { semana: "Semana atual", "7d": "Últimos 7 dias", "14d": "Últimos 14 dias", "31d": "Últimos 31 dias" };
+
+  var state = {
+    entries: [],
+    filterPeriod: "semana",
+    filterApp: "all",
+    weeklyGoal: 0,
+    storeMode: null
+  };
+
+  var dbApi = null, entriesCol = null, goalsDoc = null;
+  var pendingDeleteEntry = null;
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+  function appFill(app){ return css(SERIES_VAR[app] || "--text-muted"); }
+
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function escapeHtml(s){
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
+    });
+  }
+  function fmtBRL(n){ return (Number(n)||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}); }
+  function fmtCompactBRL(n){
+    n = Number(n)||0;
+    if (Math.abs(n) >= 1000) return "R$" + (n/1000).toLocaleString("pt-BR",{maximumFractionDigits:1}) + "k";
+    return "R$" + Math.round(n);
+  }
+  function fmtNum(n, d){
+    d = d == null ? 1 : d;
+    return (Number(n)||0).toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+  }
+  function shortDate(d){ var p = d.split("-"); return p[2] + "/" + p[1]; }
+  function formatFullDate(d){
+    var dt = new Date(d + "T00:00:00");
+    return dt.toLocaleDateString("pt-BR", { weekday:"short", day:"2-digit", month:"short" });
+  }
+  function formatShortRange(start, end){
+    return shortDate(start) + "–" + shortDate(end);
+  }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+  function niceCeil(v){
+    if (v <= 0) return 10;
+    var mag = Math.pow(10, Math.floor(Math.log10(v)));
+    var norm = v / mag, niceNorm;
+    if (norm <= 1) niceNorm = 1; else if (norm <= 2) niceNorm = 2; else if (norm <= 5) niceNorm = 5; else niceNorm = 10;
+    return niceNorm * mag;
+  }
+
+  /** Normalizes a session entry into a per-app {earnings, rides} map.
+   * Supports the multi-app shape (e.apps) and falls back to the legacy
+   * single-app shape (e.app/e.earnings/e.rides) for entries saved before
+   * multi-app registration existed. */
+  function entryApps(e){
+    var result = {};
+    APP_KEYS.forEach(function(k){ result[k] = { earnings: 0, rides: 0 }; });
+    if (e.apps && typeof e.apps === "object"){
+      Object.keys(e.apps).forEach(function(k){
+        var a = e.apps[k] || {};
+        result[k] = { earnings: Number(a.earnings)||0, rides: Number(a.rides)||0 };
+      });
+    } else if (e.app){
+      result[e.app] = { earnings: Number(e.earnings)||0, rides: Number(e.rides)||0 };
+    }
+    return result;
+  }
+
+  function mondayOf(d){
+    var dt = new Date(d);
+    var day = dt.getDay();
+    var diff = day === 0 ? -6 : 1 - day;
+    dt.setDate(dt.getDate() + diff);
+    dt.setHours(0,0,0,0);
+    return dt;
+  }
+  function currentWeekRange(){
+    var mon = mondayOf(new Date());
+    var sun = new Date(mon); sun.setDate(sun.getDate()+6);
+    return { start: mon.toISOString().slice(0,10), end: sun.toISOString().slice(0,10) };
+  }
+  function periodRange(period){
+    if (period === "semana") return currentWeekRange();
+    var n = period === "7d" ? 7 : period === "14d" ? 14 : 31;
+    var today = new Date(); today.setHours(0,0,0,0);
+    var start = new Date(today); start.setDate(start.getDate() - (n-1));
+    return { start: start.toISOString().slice(0,10), end: today.toISOString().slice(0,10) };
+  }
+  function inRange(dateStr, range){ return dateStr >= range.start && dateStr <= range.end; }
+  function rangeDays(range){
+    var days = [];
+    var d = new Date(range.start + "T00:00:00");
+    var end = new Date(range.end + "T00:00:00");
+    var guard = 0;
+    while (d <= end && guard < MAX_CHART_DAYS){
+      days.push(d.toISOString().slice(0,10));
+      d.setDate(d.getDate()+1);
+      guard++;
+    }
+    return days;
+  }
+
+  /* ---------------- storage layer ---------------- */
+
+  function setStatus(kind, msg){
+    var chip = document.getElementById("status-chip");
+    var text = document.getElementById("status-text");
+    chip.className = "status-chip " + kind;
+    var labels = {
+      connecting: "Conectando…",
+      ok: "✓ Dados sincronizados",
+      saving: "Salvando…",
+      error: "Erro ao salvar" + (msg ? ": " + msg : ""),
+      local: "Armazenamento local"
+    };
+    text.textContent = labels[kind] || kind;
+  }
+
+  function loadLocal(key, fallback){
+    try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+    catch(e){ return fallback; }
+  }
+  function saveLocalEntries(){ localStorage.setItem("turnofechado_entries", JSON.stringify(state.entries)); }
+  function saveLocalGoal(){ localStorage.setItem("turnofechado_goal", JSON.stringify(state.weeklyGoal)); }
+
+  async function initStore(){
+    try {
+      if (window.claude && typeof window.claude.use === "function") {
+        dbApi = await window.claude.use("db");
+      }
+    } catch(e){ dbApi = null; }
+
+    if (dbApi) {
+      state.storeMode = "db";
+      entriesCol = dbApi.collection("entries");
+      goalsDoc = dbApi.doc("config/goals");
+
+      entriesCol.onSnapshot(function(snap){
+        state.entries = snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+        setStatus("ok");
+        renderAll();
+      }, function(err){ setStatus("error", err && err.message); });
+
+      goalsDoc.onSnapshot(function(snap){
+        if (snap.exists) state.weeklyGoal = Number(snap.data().weeklyGoal)||0;
+        renderAll();
+      }, function(err){ /* keep default goal on error */ });
+    } else {
+      state.storeMode = "local";
+      state.entries = loadLocal("turnofechado_entries", []);
+      state.weeklyGoal = loadLocal("turnofechado_goal", 0);
+      document.getElementById("local-banner").hidden = false;
+      setStatus("local");
+      renderAll();
+    }
+  }
+
+  async function addEntry(data){
+    data.createdAt = new Date().toISOString();
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try { await entriesCol.add(data); setStatus("ok"); }
+      catch(e){ setStatus("error", e && e.message); }
+    } else {
+      data.id = uid();
+      state.entries.push(data);
+      saveLocalEntries();
+      setStatus("local");
+      renderAll();
+    }
+  }
+
+  async function removeEntry(id){
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try { await entriesCol.doc(id).delete(); setStatus("ok"); }
+      catch(e){ setStatus("error", e && e.message); }
+    } else {
+      state.entries = state.entries.filter(function(e){ return e.id !== id; });
+      saveLocalEntries();
+      renderAll();
+    }
+  }
+
+  async function saveGoal(goal){
+    state.weeklyGoal = goal;
+    if (state.storeMode === "db") {
+      try { await goalsDoc.set({ weeklyGoal: goal }); }
+      catch(e){ setStatus("error", e && e.message); }
+    } else {
+      saveLocalGoal();
+      renderAll();
+    }
+  }
+
+  /* ---------------- computations ---------------- */
+
+  function computeStats(range){
+    var gross=0, rides=0, km=0, hours=0, expenses=0;
+    state.entries.forEach(function(e){
+      if (!inRange(e.date, range)) return;
+      if (e.kind === "session"){
+        var apps = entryApps(e);
+        var relevant = state.filterApp === "all";
+        Object.keys(apps).forEach(function(appName){
+          if (state.filterApp !== "all" && appName !== state.filterApp) return;
+          var a = apps[appName];
+          if (state.filterApp !== "all" && (a.earnings||0) === 0 && (a.rides||0) === 0) return;
+          gross += a.earnings||0;
+          rides += a.rides||0;
+          relevant = true;
+        });
+        if (relevant){ hours += Number(e.hours)||0; km += Number(e.km)||0; }
+      } else if (e.kind === "expense"){
+        expenses += Number(e.amount)||0;
+      }
+    });
+    var net = gross - expenses;
+    return { gross:gross, rides:rides, km:km, hours:hours, expenses:expenses, net:net,
+      perHour: hours>0 ? net/hours : 0, perKm: km>0 ? gross/km : 0 };
+  }
+
+  function computeGrossAllApps(range){
+    var gross = 0;
+    state.entries.forEach(function(e){
+      if (e.kind !== "session") return;
+      if (!inRange(e.date, range)) return;
+      var apps = entryApps(e);
+      Object.keys(apps).forEach(function(k){ gross += apps[k].earnings||0; });
+    });
+    return gross;
+  }
+
+  function computeChartData(range){
+    var days = rangeDays(range);
+    var byDay = {};
+    days.forEach(function(d){ byDay[d] = {}; APP_KEYS.forEach(function(k){ byDay[d][k]=0; }); });
+    state.entries.forEach(function(e){
+      if (e.kind !== "session") return;
+      if (!byDay[e.date]) return;
+      var apps = entryApps(e);
+      APP_KEYS.forEach(function(k){
+        if (state.filterApp !== "all" && k !== state.filterApp) return;
+        byDay[e.date][k] += apps[k].earnings||0;
+      });
+    });
+    return days.map(function(d){ return { date: d, values: byDay[d] }; });
+  }
+
+  /* ---------------- rendering ---------------- */
+
+  function renderAll(){
+    renderPeriodLabel();
+    renderTiles();
+    renderGoal();
+    renderChart();
+    renderHistory();
+  }
+
+  function renderPeriodLabel(){
+    var range = periodRange(state.filterPeriod);
+    var name = PERIOD_NAMES[state.filterPeriod];
+    document.getElementById("period-label").textContent = name + " (" + formatShortRange(range.start, range.end) + ")";
+    document.getElementById("hero-sub").textContent = "Faturamento menos despesas — " + name.toLowerCase();
+    document.getElementById("chart-title").textContent = "Faturamento por dia — " + name;
+  }
+
+  function renderTiles(){
+    var s = computeStats(periodRange(state.filterPeriod));
+    var netEl = document.getElementById("tile-net");
+    netEl.textContent = fmtBRL(s.net);
+    netEl.classList.toggle("negative", s.net < 0);
+    document.getElementById("tile-gross").textContent = fmtBRL(s.gross);
+    document.getElementById("tile-expenses").textContent = fmtBRL(s.expenses);
+    document.getElementById("tile-rides").textContent = fmtNum(s.rides, 0);
+    document.getElementById("tile-hours").textContent = fmtNum(s.hours, 1) + "h";
+    document.getElementById("tile-perhour").textContent = fmtBRL(s.perHour);
+    document.getElementById("tile-perkm").textContent = s.km > 0 ? fmtBRL(s.perKm) : "—";
+  }
+
+  function renderGoal(){
+    var range = currentWeekRange();
+    document.getElementById("goal-week-label").textContent = "Semana atual (" + formatShortRange(range.start, range.end) + ")";
+    var input = document.getElementById("goal-input");
+    if (document.activeElement !== input) input.value = state.weeklyGoal || "";
+
+    var gross = computeGrossAllApps(range);
+    var goal = Number(state.weeklyGoal)||0;
+    var pct = goal > 0 ? Math.min(100, (gross/goal)*100) : 0;
+    var fill = document.getElementById("progress-goal");
+    var offset = RING_CIRC * (1 - pct/100);
+    fill.style.strokeDashoffset = offset;
+    fill.classList.toggle("reached", goal > 0 && gross >= goal);
+    document.getElementById("ring-pct").textContent = Math.round(pct) + "%";
+    document.getElementById("goal-current").textContent = fmtBRL(gross);
+    document.getElementById("goal-target").textContent = "meta " + (goal>0 ? fmtBRL(goal) : "não definida");
+  }
+
+  function hideChartTooltip(){ document.getElementById("chart-tooltip").hidden = true; }
+  function positionTooltip(evt){
+    var tt = document.getElementById("chart-tooltip");
+    var pad = 14;
+    var x = evt.clientX + pad, y = evt.clientY + pad;
+    if (x + 230 > window.innerWidth) x = evt.clientX - 230 - pad;
+    if (y + 100 > window.innerHeight) y = evt.clientY - 100 - pad;
+    tt.style.left = x + "px";
+    tt.style.top = y + "px";
+  }
+  function showChartTooltip(evt, day, apps){
+    var tt = document.getElementById("chart-tooltip");
+    var total = apps.reduce(function(s,a){ return s + (day.values[a]||0); }, 0);
+    var rows = apps.filter(function(a){ return (day.values[a]||0) > 0; })
+      .map(function(a){ return '<div class="tt-row"><span style="color:'+appFill(a)+'">● '+a+'</span><span>'+fmtBRL(day.values[a])+"</span></div>"; })
+      .join("");
+    if (!rows) rows = '<div class="tt-row"><span>Sem faturamento</span></div>';
+    tt.innerHTML = '<div class="tt-date">'+formatFullDate(day.date)+"</div>" + rows +
+      (apps.length>1 ? '<div class="tt-row" style="margin-top:4px;border-top:1px solid rgba(255,255,255,0.2);padding-top:4px"><span>Total</span><span>'+fmtBRL(total)+"</span></div>" : "");
+    tt.hidden = false;
+    positionTooltip(evt);
+  }
+
+  function renderChart(){
+    var range = periodRange(state.filterPeriod);
+    var svg = document.getElementById("chart-svg");
+    var legend = document.getElementById("chart-legend");
+    var emptyEl = document.getElementById("chart-empty");
+
+    var data = computeChartData(range);
+    var singleApp = state.filterApp !== "all";
+    var apps = singleApp ? [state.filterApp] : APP_KEYS;
+    var totals = data.map(function(d){ return apps.reduce(function(s,a){ return s + (d.values[a]||0); }, 0); });
+    var max = Math.max.apply(null, totals.concat([0]));
+
+    if (data.length === 0 || max <= 0){
+      svg.innerHTML = "";
+      svg.setAttribute("class", "fluid");
+      legend.hidden = true;
+      emptyEl.hidden = false;
+      emptyEl.textContent = "Ainda sem sessões registradas nesse período.";
+      return;
+    }
+    emptyEl.hidden = true;
+
+    var n = data.length;
+    var fluid = n <= 20;
+    var padL=54, padR=10, padT=10, padB=26, H=220;
+    var W = fluid ? 700 : Math.max(700, n*26 + padL + padR);
+    var plotW = W-padL-padR, plotH = H-padT-padB;
+    var gap = 6;
+    var barW = (plotW - gap*(n-1)) / n;
+    var niceMax = niceCeil(max);
+    function y(v){ return padT + plotH - (v/niceMax)*plotH; }
+
+    var grid = "";
+    var steps = 4;
+    for (var i=0;i<=steps;i++){
+      var v = niceMax*i/steps;
+      var yy = y(v);
+      grid += '<line x1="'+padL+'" x2="'+(W-padR)+'" y1="'+yy+'" y2="'+yy+'" stroke="'+css("--grid")+'" stroke-width="1"/>';
+      grid += '<text x="'+(padL-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="10.5" fill="'+css("--text-muted")+'" font-family="var(--font-mono)">'+fmtCompactBRL(v)+"</text>";
+    }
+
+    var labelEvery = n <= 14 ? 1 : Math.ceil(n/14);
+    var bars = "", hits = "";
+    data.forEach(function(d, idx){
+      var x = padL + idx*(barW+gap);
+      var yCursor = padT + plotH;
+      apps.forEach(function(app){
+        var v = d.values[app]||0;
+        if (v <= 0) return;
+        var h = (v/niceMax)*plotH;
+        yCursor -= h;
+        bars += '<rect x="'+x+'" y="'+yCursor+'" width="'+barW+'" height="'+Math.max(h,0)+'" fill="'+appFill(app)+'" rx="2"/>';
+      });
+      if (idx % labelEvery === 0){
+        bars += '<text x="'+(x+barW/2)+'" y="'+(H-8)+'" text-anchor="middle" font-size="10" fill="'+css("--text-muted")+'" font-family="var(--font-mono)">'+shortDate(d.date)+"</text>";
+      }
+      hits += '<rect class="chart-hit" data-i="'+idx+'" x="'+(x-gap/2)+'" y="'+padT+'" width="'+(barW+gap)+'" height="'+plotH+'" fill="transparent" style="cursor:pointer"/>';
+    });
+
+    svg.setAttribute("viewBox", "0 0 "+W+" "+H);
+    if (fluid){ svg.setAttribute("width","100%"); svg.removeAttribute("height"); svg.setAttribute("class", "fluid"); }
+    else { svg.setAttribute("width", W); svg.setAttribute("height", H); svg.setAttribute("class", ""); }
+    svg.innerHTML = grid + bars + hits;
+
+    var hitEls = svg.querySelectorAll(".chart-hit");
+    for (var k=0;k<hitEls.length;k++){
+      (function(rect){
+        var idx = +rect.getAttribute("data-i");
+        rect.addEventListener("mouseenter", function(e){ showChartTooltip(e, data[idx], apps); });
+        rect.addEventListener("mousemove", positionTooltip);
+        rect.addEventListener("mouseleave", hideChartTooltip);
+      })(hitEls[k]);
+    }
+
+    if (!singleApp){
+      legend.hidden = false;
+      legend.innerHTML = APP_KEYS.map(function(a){
+        return '<span class="legend-item"><span class="swatch" style="background:'+appFill(a)+'"></span>'+a+"</span>";
+      }).join("");
+    } else {
+      legend.hidden = true;
+    }
+  }
+
+  function renderHistory(){
+    var container = document.getElementById("history-list");
+    var sorted = state.entries.slice().sort(function(a,b){
+      var ka = a.date + (a.createdAt||""), kb = b.date + (b.createdAt||"");
+      return kb.localeCompare(ka);
+    });
+    if (sorted.length === 0){
+      container.innerHTML = '<p class="empty">Nenhum registro ainda. Adicione sua primeira sessão ou despesa acima.</p>';
+      return;
+    }
+    var shown = sorted.slice(0, 60);
+    var html = "";
+    shown.forEach(function(e){
+      var dt = new Date(e.date + "T00:00:00");
+      var weekday = dt.toLocaleDateString("pt-BR", { weekday: "short" });
+      var day = dt.getDate();
+      var fullDate = e.date.split("-").reverse().join("/");
+      if (e.kind === "session"){
+        var apps = entryApps(e);
+        var totalEarnings = 0, totalRides = 0;
+        var appChips = "";
+        Object.keys(apps).forEach(function(k){
+          var a = apps[k];
+          totalEarnings += a.earnings||0;
+          totalRides += a.rides||0;
+          if ((a.earnings||0) > 0 || (a.rides||0) > 0){
+            appChips += '<span class="chip" style="color:'+appFill(k)+'">'+escapeHtml(k)+' '+fmtBRL(a.earnings)+(a.rides?' · '+fmtNum(a.rides,0)+'x':'')+'</span>';
+          }
+        });
+        html += '<div class="hist-card">'
+          + '<div class="hist-daybox"><span class="hist-weekday">'+weekday+'</span><span class="hist-day">'+day+'</span><span class="hist-fulldate">'+fullDate+'</span></div>'
+          + '<div class="hist-main">'
+          +   '<div class="hist-numbers"><div><span class="hist-num-label">Faturamento</span><span class="hist-num-value">'+fmtBRL(totalEarnings)+'</span></div></div>'
+          +   '<div class="hist-chips">'
+          +     appChips
+          +     '<span class="chip">'+fmtNum(totalRides,0)+' corridas</span>'
+          +     '<span class="chip">'+fmtNum(e.hours,1)+'h</span>'
+          +     (e.km ? '<span class="chip">'+fmtNum(e.km,0)+' km</span>' : '')
+          +   '</div>'
+          +   (e.notes ? '<div class="hist-notes">'+escapeHtml(e.notes)+'</div>' : '')
+          + '</div>'
+          + '<button class="hist-del" data-id="'+e.id+'" title="Excluir">🗑</button>'
+          + '</div>';
+      } else {
+        html += '<div class="hist-card">'
+          + '<div class="hist-daybox"><span class="hist-weekday">'+weekday+'</span><span class="hist-day">'+day+'</span><span class="hist-fulldate">'+fullDate+'</span></div>'
+          + '<div class="hist-main">'
+          +   '<div class="hist-numbers"><div><span class="hist-num-label">'+escapeHtml(e.category)+'</span><span class="hist-num-value negative">-'+fmtBRL(e.amount)+'</span></div></div>'
+          +   (e.notes ? '<div class="hist-notes">'+escapeHtml(e.notes)+'</div>' : '')
+          + '</div>'
+          + '<button class="hist-del" data-id="'+e.id+'" title="Excluir">🗑</button>'
+          + '</div>';
+      }
+    });
+    if (sorted.length > 60) html += '<p class="hist-more">Mostrando os 60 registros mais recentes de '+sorted.length+".</p>";
+    container.innerHTML = html;
+  }
+
+  /* ---------------- events ---------------- */
+
+  document.getElementById("filter-app").addEventListener("change", function(e){
+    state.filterApp = e.target.value;
+    renderAll();
+  });
+
+  document.getElementById("period-toggle").addEventListener("click", function(e){
+    var btn = e.target.closest(".seg-btn");
+    if (!btn) return;
+    state.filterPeriod = btn.getAttribute("data-period");
+    document.querySelectorAll("#period-toggle .seg-btn").forEach(function(b){ b.classList.toggle("active", b===btn); });
+    renderAll();
+  });
+
+  document.getElementById("goal-input").addEventListener("change", function(e){
+    saveGoal(parseFloat(e.target.value)||0);
+  });
+
+  var currentKind = "session";
+  document.getElementById("kind-toggle").addEventListener("click", function(e){
+    var btn = e.target.closest(".seg-btn");
+    if (!btn) return;
+    currentKind = btn.getAttribute("data-kind");
+    document.querySelectorAll("#kind-toggle .seg-btn").forEach(function(b){ b.classList.toggle("active", b===btn); });
+    var isSession = currentKind === "session";
+    document.getElementById("wrap-session-apps").hidden = !isSession;
+    document.getElementById("wrap-hours").hidden = !isSession;
+    document.getElementById("wrap-km").hidden = !isSession;
+    document.getElementById("wrap-category").hidden = isSession;
+    document.getElementById("wrap-amount").hidden = isSession;
+  });
+
+  document.getElementById("entry-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var errorEl = document.getElementById("form-error");
+    errorEl.hidden = true;
+    var date = document.getElementById("f-date").value || todayStr();
+    if (currentKind === "session"){
+      var hours = parseFloat(document.getElementById("f-hours").value);
+      if (isNaN(hours)){
+        errorEl.textContent = "Preencha as horas trabalhadas.";
+        errorEl.hidden = false;
+        return;
+      }
+      var apps = {
+        Uber: { earnings: parseFloat(document.getElementById("f-uber-earnings").value)||0, rides: parseFloat(document.getElementById("f-uber-rides").value)||0 },
+        "99": { earnings: parseFloat(document.getElementById("f-app99-earnings").value)||0, rides: parseFloat(document.getElementById("f-app99-rides").value)||0 },
+        Particular: { earnings: parseFloat(document.getElementById("f-particular-earnings").value)||0, rides: parseFloat(document.getElementById("f-particular-rides").value)||0 }
+      };
+      var totalCheck = APP_KEYS.reduce(function(s,k){ return s + apps[k].earnings + apps[k].rides; }, 0);
+      if (totalCheck <= 0){
+        errorEl.textContent = "Preencha o faturamento ou as corridas de pelo menos um app.";
+        errorEl.hidden = false;
+        return;
+      }
+      var km = parseFloat(document.getElementById("f-km").value) || 0;
+      var notes = document.getElementById("f-notes").value.trim();
+      addEntry({ kind: "session", date: date, hours: hours, km: km, apps: apps, notes: notes });
+      ["f-uber-earnings","f-uber-rides","f-app99-earnings","f-app99-rides","f-particular-earnings","f-particular-rides","f-hours","f-km"].forEach(function(id){
+        document.getElementById(id).value = "";
+      });
+    } else {
+      var amount = parseFloat(document.getElementById("f-amount").value);
+      if (isNaN(amount)){
+        errorEl.textContent = "Informe o valor da despesa.";
+        errorEl.hidden = false;
+        return;
+      }
+      addEntry({
+        kind: "expense",
+        date: date,
+        category: document.getElementById("f-category").value,
+        amount: amount,
+        notes: document.getElementById("f-notes").value.trim()
+      });
+      document.getElementById("f-amount").value = "";
+    }
+    document.getElementById("f-notes").value = "";
+  });
+
+  document.getElementById("history-list").addEventListener("click", function(e){
+    var btn = e.target.closest(".hist-del");
+    if (!btn) return;
+    var id = btn.getAttribute("data-id");
+    if (pendingDeleteEntry === id){
+      pendingDeleteEntry = null;
+      removeEntry(id);
+    } else {
+      pendingDeleteEntry = id;
+      btn.textContent = "✓";
+      btn.classList.add("confirm");
+      setTimeout(function(){
+        if (pendingDeleteEntry === id){
+          pendingDeleteEntry = null;
+          btn.textContent = "🗑";
+          btn.classList.remove("confirm");
+        }
+      }, 2500);
+    }
+  });
+
+  document.getElementById("f-date").value = todayStr();
+  document.getElementById("footer-note").textContent = "Seus dados ficam guardados neste painel — nada é enviado para o Uber, 99 ou outros apps.";
+
+  setStatus("connecting");
+  initStore();
+})();
+</script>
