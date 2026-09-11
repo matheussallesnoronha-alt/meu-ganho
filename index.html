@@ -49,16 +49,28 @@
 
   *{ box-sizing: border-box; }
   html, body{ margin:0; padding:0; }
-  html{ background: var(--bg); }
+  html{
+    background: var(--bg);
+    overflow-x: hidden;
+    width: 100%;
+  }
   body{
     background: var(--bg);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    width: 100%;
     min-height: 100dvh;
   }
-  .wrap{ max-width: 920px; margin: 0 auto; padding: 20px 16px 64px; }
+  .wrap{ max-width: 920px; margin: 0 auto; padding: 20px 16px 64px; min-width: 0; }
+  /* grid/flex items default to a content-based minimum width that can force
+     horizontal overflow; zero it out everywhere and let cramped boxes scroll
+     internally instead of pushing the page sideways. */
+  .tiles, .tile, .form-grid, .form-grid > label, .app-breakdown, .app-row,
+  .app-row > label, .ring-row, .ring-info, .hist-card, .hist-main, .hist-numbers,
+  .segmented, .topbar, .brand{ min-width: 0; }
+  .app-row, .form-grid, .tiles{ overflow-x: auto; }
 
   /* ---------- header ---------- */
   .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
@@ -1023,6 +1035,11 @@
 
   document.getElementById("f-date").value = todayStr();
   document.getElementById("footer-note").textContent = "Seus dados ficam guardados neste painel — nada é enviado para o Uber, 99 ou outros apps.";
+  document.getElementById("wrap-session-apps").hidden = false;
+  document.getElementById("wrap-hours").hidden = false;
+  document.getElementById("wrap-km").hidden = false;
+  document.getElementById("wrap-category").hidden = true;
+  document.getElementById("wrap-amount").hidden = true;
 
   setStatus("connecting");
   initStore();
