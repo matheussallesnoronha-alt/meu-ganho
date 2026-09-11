@@ -266,7 +266,7 @@
   </div>
 
   <div id="local-banner" class="banner" hidden>
-    💾 Este ambiente não oferece armazenamento na nuvem para este painel — os dados estão sendo salvos apenas neste navegador (localStorage). Evite limpar os dados do navegador para não perdê-los.
+    💾 Não foi possível conectar ao banco de dados agora — os dados estão sendo salvos apenas neste navegador (localStorage). Evite limpar os dados do navegador para não perdê-los.
   </div>
 
   <section>
@@ -414,6 +414,7 @@
 
 <div class="chart-tooltip" id="chart-tooltip" hidden></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 (function(){
   "use strict";
@@ -432,7 +433,7 @@
     storeMode: null
   };
 
-  var dbApi = null, entriesCol = null, goalsDoc = null;
+  var sb = null;
   var pendingDeleteEntry = null;
 
   function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
@@ -525,6 +526,9 @@
 
   /* ---------------- storage layer ---------------- */
 
+  var SUPABASE_URL = "https://quhdsynakofqgaocjjuk.supabase.co";
+  var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF1aGRzeW5ha29mcWdhb2NqanVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwOTcwOTMsImV4cCI6MjEwNDY3MzA5M30.nDwDY3nZDvRqtBYG0b4CZJjfOtcBvUv7aRxE9ZyN2xQ";
+
   function setStatus(kind, msg){
     var chip = document.getElementById("status-chip");
     var text = document.getElementById("status-text");
@@ -546,44 +550,67 @@
   function saveLocalEntries(){ localStorage.setItem("turnofechado_entries", JSON.stringify(state.entries)); }
   function saveLocalGoal(){ localStorage.setItem("turnofechado_goal", JSON.stringify(state.weeklyGoal)); }
 
+  function rowToEntry(r){
+    var e = { id: r.id, kind: r.kind, date: r.date, notes: r.notes || "", createdAt: r.created_at };
+    if (r.kind === "session"){ e.hours = r.hours; e.km = r.km; e.apps = r.apps; }
+    else { e.category = r.category; e.amount = r.amount; }
+    return e;
+  }
+  function entryToRow(data){
+    var row = { kind: data.kind, date: data.date, notes: data.notes || null };
+    if (data.kind === "session"){ row.hours = data.hours; row.km = data.km; row.apps = data.apps; }
+    else { row.category = data.category; row.amount = data.amount; }
+    return row;
+  }
+
+  async function refetchEntries(){
+    var res = await sb.from("entries").select("*").order("date", { ascending:false });
+    if (res.error) throw res.error;
+    state.entries = res.data.map(rowToEntry);
+  }
+  async function refetchGoal(){
+    var res = await sb.from("goals").select("weekly_goal").maybeSingle();
+    if (res.error) throw res.error;
+    state.weeklyGoal = res.data ? Number(res.data.weekly_goal)||0 : 0;
+  }
+
   async function initStore(){
     try {
-      if (window.claude && typeof window.claude.use === "function") {
-        dbApi = await window.claude.use("db");
-      }
-    } catch(e){ dbApi = null; }
-
-    if (dbApi) {
-      state.storeMode = "db";
-      entriesCol = dbApi.collection("entries");
-      goalsDoc = dbApi.doc("config/goals");
-
-      entriesCol.onSnapshot(function(snap){
-        state.entries = snap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+      if (window.supabase && typeof window.supabase.createClient === "function") {
+        sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        var sessionRes = await sb.auth.getSession();
+        if (!sessionRes.data.session) {
+          var signInRes = await sb.auth.signInAnonymously();
+          if (signInRes.error) throw signInRes.error;
+        }
+        await refetchEntries();
+        await refetchGoal();
+        state.storeMode = "db";
         setStatus("ok");
         renderAll();
-      }, function(err){ setStatus("error", err && err.message); });
+        return;
+      }
+    } catch(e){ sb = null; }
 
-      goalsDoc.onSnapshot(function(snap){
-        if (snap.exists) state.weeklyGoal = Number(snap.data().weeklyGoal)||0;
-        renderAll();
-      }, function(err){ /* keep default goal on error */ });
-    } else {
-      state.storeMode = "local";
-      state.entries = loadLocal("turnofechado_entries", []);
-      state.weeklyGoal = loadLocal("turnofechado_goal", 0);
-      document.getElementById("local-banner").hidden = false;
-      setStatus("local");
-      renderAll();
-    }
+    state.storeMode = "local";
+    state.entries = loadLocal("turnofechado_entries", []);
+    state.weeklyGoal = loadLocal("turnofechado_goal", 0);
+    document.getElementById("local-banner").hidden = false;
+    setStatus("local");
+    renderAll();
   }
 
   async function addEntry(data){
     data.createdAt = new Date().toISOString();
     if (state.storeMode === "db") {
       setStatus("saving");
-      try { await entriesCol.add(data); setStatus("ok"); }
-      catch(e){ setStatus("error", e && e.message); }
+      try {
+        var res = await sb.from("entries").insert(entryToRow(data));
+        if (res.error) throw res.error;
+        await refetchEntries();
+        setStatus("ok");
+        renderAll();
+      } catch(e){ setStatus("error", e && e.message); }
     } else {
       data.id = uid();
       state.entries.push(data);
@@ -596,8 +623,13 @@
   async function removeEntry(id){
     if (state.storeMode === "db") {
       setStatus("saving");
-      try { await entriesCol.doc(id).delete(); setStatus("ok"); }
-      catch(e){ setStatus("error", e && e.message); }
+      try {
+        var res = await sb.from("entries").delete().eq("id", id);
+        if (res.error) throw res.error;
+        await refetchEntries();
+        setStatus("ok");
+        renderAll();
+      } catch(e){ setStatus("error", e && e.message); }
     } else {
       state.entries = state.entries.filter(function(e){ return e.id !== id; });
       saveLocalEntries();
@@ -608,8 +640,11 @@
   async function saveGoal(goal){
     state.weeklyGoal = goal;
     if (state.storeMode === "db") {
-      try { await goalsDoc.set({ weeklyGoal: goal }); }
-      catch(e){ setStatus("error", e && e.message); }
+      try {
+        var res = await sb.from("goals").upsert({ weekly_goal: goal });
+        if (res.error) throw res.error;
+        renderAll();
+      } catch(e){ setStatus("error", e && e.message); }
     } else {
       saveLocalGoal();
       renderAll();
