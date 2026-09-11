@@ -195,11 +195,11 @@
   /* ---------- form ---------- */
   .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
   .app-breakdown{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
-  .app-row{ display:grid; grid-template-columns:64px 1fr 1fr; gap:10px; align-items:end; background:var(--surface-2); border-radius:12px; padding:10px 12px; }
+  .app-row{ display:grid; grid-template-columns:64px minmax(0,1fr) minmax(0,1fr); gap:10px; align-items:end; background:var(--surface-2); border-radius:12px; padding:10px 12px; }
   .app-row-label{ font-weight:800; font-size:13px; padding-bottom:10px; }
-  .app-row label{ display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-secondary); }
+  .app-row label{ display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--text-secondary); min-width:0; }
   .app-row input{
-    font-family: var(--font-sans); font-size:14px; padding:9px 10px; border-radius:8px;
+    width:100%; min-width:0; font-family: var(--font-sans); font-size:14px; padding:9px 10px; border-radius:8px;
     border:1px solid var(--border); background:var(--surface); color:var(--text-primary);
   }
   .form-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin-bottom:16px; }
@@ -253,8 +253,8 @@
     .btn-pill-primary{ padding: 9px 14px; font-size: 12.5px; }
     .hero{ padding: 18px 16px; }
     .hero .value{ font-size: 32px; }
-    .tiles{ grid-template-columns: repeat(2, 1fr); }
-    .app-row{ grid-template-columns: 52px 1fr 1fr; gap: 8px; padding: 10px; }
+    .tiles{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .app-row{ grid-template-columns: 52px minmax(0,1fr) minmax(0,1fr); gap: 8px; padding: 10px; }
     .ring-row{ gap:16px; }
     .hist-card{ flex-wrap: wrap; }
   }
