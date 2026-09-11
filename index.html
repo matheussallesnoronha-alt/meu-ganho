@@ -6,6 +6,13 @@
 <meta name="theme-color" content="#0a0e18">
 <meta name="description" content="Painel pessoal para registrar corridas Uber, 99 e particulares, acompanhar lucro líquido semanal e bater metas de faturamento.">
 <title>Meu Ganho</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Meu Ganho">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
 <style>
@@ -41,11 +48,15 @@
   }
 
   *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  html{ background: var(--bg); }
   body{
     background: var(--bg);
     color: var(--text-primary);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100dvh;
   }
   .wrap{ max-width: 920px; margin: 0 auto; padding: 20px 16px 64px; }
 
