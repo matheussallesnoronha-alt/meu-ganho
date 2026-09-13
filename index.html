@@ -331,7 +331,7 @@
       <div class="tile tone-bad"><div class="t-icon">⛽</div><div class="t-label">Despesas</div><div class="t-value" id="tile-expenses">R$ 0,00</div></div>
       <div class="tile tone-info"><div class="t-icon">🧭</div><div class="t-label">Corridas</div><div class="t-value" id="tile-rides">0</div></div>
       <div class="tile tone-info"><div class="t-icon">🕐</div><div class="t-label">Horas trabalhadas</div><div class="t-value" id="tile-hours">0h</div></div>
-      <div class="tile tone-good"><div class="t-icon">⚡</div><div class="t-label">Lucro por hora</div><div class="t-value" id="tile-perhour">R$ 0,00</div></div>
+      <div class="tile tone-good"><div class="t-icon">⚡</div><div class="t-label">Ganho por hora</div><div class="t-value" id="tile-perhour">R$ 0,00</div></div>
       <div class="tile tone-info"><div class="t-icon">📍</div><div class="t-label">R$ por km (bruto)</div><div class="t-value" id="tile-perkm">—</div></div>
     </div>
   </section>
@@ -721,7 +721,7 @@
     });
     var net = gross - expenses;
     return { gross:gross, rides:rides, km:km, hours:hours, expenses:expenses, net:net,
-      perHour: hours>0 ? net/hours : 0, perKm: km>0 ? gross/km : 0 };
+      perHour: hours>0 ? gross/hours : 0, perKm: km>0 ? gross/km : 0 };
   }
 
   function computeGrossAllApps(range){
