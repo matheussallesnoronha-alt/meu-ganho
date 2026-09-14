@@ -192,6 +192,27 @@
   }
   .seg-btn.active{ background:var(--accent); color:#fff; }
 
+  /* ---------- cycle panel ---------- */
+  .cycle-panel{
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    padding:14px; margin-bottom:18px; margin-top:-8px;
+  }
+  .cycle-panel-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .cycle-panel-row select{ flex:1; min-width:160px; }
+  .cycle-form-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+  .cycle-form-row input[type="text"]{ flex:1; min-width:140px; }
+  .cycle-form-row input{
+    font-family: var(--font-sans); font-size:13px; padding:8px 10px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary); min-width:0;
+  }
+  .btn-mini{
+    font-family: var(--font-sans); font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:8px;
+    border:none; background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap;
+  }
+  .btn-mini:hover{ background:var(--accent-strong); }
+  .btn-mini.danger{ background:var(--critical-soft); color:var(--critical); }
+  .btn-mini.danger:hover{ background:rgba(245,69,95,0.3); }
+
   /* ---------- form ---------- */
   .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
   .app-breakdown{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; }
@@ -311,6 +332,22 @@
       <button type="button" class="seg-btn" data-period="7d">7 dias</button>
       <button type="button" class="seg-btn" data-period="14d">14 dias</button>
       <button type="button" class="seg-btn" data-period="31d">31 dias</button>
+      <button type="button" class="seg-btn" data-period="cycle">Ciclo</button>
+    </div>
+    <div class="cycle-panel" id="cycle-panel" hidden>
+      <div class="cycle-panel-row">
+        <select id="cycle-select"><option value="">Selecione um ciclo…</option></select>
+        <button type="button" class="btn-mini" id="new-cycle-btn">+ Novo ciclo</button>
+        <button type="button" class="btn-mini danger" id="delete-cycle-btn" hidden>Excluir</button>
+      </div>
+      <div class="cycle-form-row" id="cycle-form-row" hidden>
+        <input type="text" id="cycle-name" placeholder="Nome do ciclo" maxlength="40">
+        <input type="date" id="cycle-start">
+        <input type="date" id="cycle-end">
+        <button type="button" class="btn-mini" id="save-cycle-btn">Salvar</button>
+        <button type="button" class="btn-mini" id="cancel-cycle-btn">Cancelar</button>
+      </div>
+      <p class="form-error" id="cycle-error" hidden></p>
     </div>
     <div class="hero">
       <div class="hero-top">
@@ -455,7 +492,9 @@
 
   var state = {
     entries: [],
+    cycles: [],
     filterPeriod: "semana",
+    selectedCycleId: null,
     filterApp: "all",
     weeklyGoal: 0,
     storeMode: null
@@ -531,7 +570,15 @@
     var sun = new Date(mon); sun.setDate(sun.getDate()+6);
     return { start: mon.toISOString().slice(0,10), end: sun.toISOString().slice(0,10) };
   }
+  function getSelectedCycle(){
+    return state.cycles.find(function(c){ return c.id === state.selectedCycleId; }) || null;
+  }
   function periodRange(period){
+    if (period === "cycle"){
+      var c = getSelectedCycle();
+      if (c) return { start: c.start_date, end: c.end_date };
+      return currentWeekRange();
+    }
     if (period === "semana") return currentWeekRange();
     var n = period === "7d" ? 7 : period === "14d" ? 14 : 31;
     var today = new Date(); today.setHours(0,0,0,0);
@@ -577,6 +624,7 @@
   }
   function saveLocalEntries(){ localStorage.setItem("turnofechado_entries", JSON.stringify(state.entries)); }
   function saveLocalGoal(){ localStorage.setItem("turnofechado_goal", JSON.stringify(state.weeklyGoal)); }
+  function saveLocalCycles(){ localStorage.setItem("turnofechado_cycles", JSON.stringify(state.cycles)); }
 
   function rowToEntry(r){
     var e = { id: r.id, kind: r.kind, date: r.date, notes: r.notes || "", createdAt: r.created_at };
@@ -601,6 +649,11 @@
     if (res.error) throw res.error;
     state.weeklyGoal = res.data ? Number(res.data.weekly_goal)||0 : 0;
   }
+  async function refetchCycles(){
+    var res = await sb.from("cycles").select("*").order("start_date", { ascending:false });
+    if (res.error) throw res.error;
+    state.cycles = res.data;
+  }
 
   async function initStore(){
     try {
@@ -613,6 +666,7 @@
         }
         await refetchEntries();
         await refetchGoal();
+        try { await refetchCycles(); } catch(cycleErr){ state.cycles = []; }
         state.storeMode = "db";
         setStatus("ok");
         renderAll();
@@ -623,6 +677,7 @@
     state.storeMode = "local";
     state.entries = loadLocal("turnofechado_entries", []);
     state.weeklyGoal = loadLocal("turnofechado_goal", 0);
+    state.cycles = loadLocal("turnofechado_cycles", []);
     document.getElementById("local-banner").hidden = false;
     setStatus("local");
     renderAll();
@@ -697,6 +752,42 @@
     }
   }
 
+  async function addCycle(data){
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try {
+        var res = await sb.from("cycles").insert(data).select();
+        if (res.error) throw res.error;
+        await refetchCycles();
+        state.selectedCycleId = res.data[0].id;
+        setStatus("ok");
+        renderAll();
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      var row = Object.assign({ id: uid() }, data);
+      state.cycles.push(row);
+      state.selectedCycleId = row.id;
+      saveLocalCycles();
+      renderAll();
+    }
+  }
+
+  async function removeCycle(id){
+    if (state.selectedCycleId === id) state.selectedCycleId = null;
+    if (state.storeMode === "db") {
+      try {
+        var res = await sb.from("cycles").delete().eq("id", id);
+        if (res.error) throw res.error;
+        await refetchCycles();
+        renderAll();
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      state.cycles = state.cycles.filter(function(c){ return c.id !== id; });
+      saveLocalCycles();
+      renderAll();
+    }
+  }
+
   /* ---------------- computations ---------------- */
 
   function computeStats(range){
@@ -755,6 +846,7 @@
 
   function renderAll(){
     renderPeriodLabel();
+    renderCyclePanel();
     renderTiles();
     renderGoal();
     renderChart();
@@ -763,10 +855,32 @@
 
   function renderPeriodLabel(){
     var range = periodRange(state.filterPeriod);
-    var name = PERIOD_NAMES[state.filterPeriod];
-    document.getElementById("period-label").textContent = name + " (" + formatShortRange(range.start, range.end) + ")";
+    var name;
+    if (state.filterPeriod === "cycle"){
+      var c = getSelectedCycle();
+      name = c ? c.name : "Nenhum ciclo selecionado";
+    } else {
+      name = PERIOD_NAMES[state.filterPeriod];
+    }
+    var hasRange = state.filterPeriod !== "cycle" || getSelectedCycle();
+    document.getElementById("period-label").textContent = hasRange ? (name + " (" + formatShortRange(range.start, range.end) + ")") : name;
     document.getElementById("hero-sub").textContent = "Faturamento menos despesas — " + name.toLowerCase();
     document.getElementById("chart-title").textContent = "Faturamento por dia — " + name;
+  }
+
+  function renderCyclePanel(){
+    var panel = document.getElementById("cycle-panel");
+    panel.hidden = state.filterPeriod !== "cycle";
+    if (panel.hidden) return;
+
+    var select = document.getElementById("cycle-select");
+    var sorted = state.cycles.slice().sort(function(a,b){ return (b.start_date||"").localeCompare(a.start_date||""); });
+    select.innerHTML = '<option value="">Selecione um ciclo…</option>' + sorted.map(function(c){
+      return '<option value="'+c.id+'">'+escapeHtml(c.name)+' ('+formatShortRange(c.start_date, c.end_date)+')</option>';
+    }).join("");
+    select.value = state.selectedCycleId || "";
+
+    document.getElementById("delete-cycle-btn").hidden = !state.selectedCycleId;
   }
 
   function renderTiles(){
@@ -978,6 +1092,47 @@
     state.filterPeriod = btn.getAttribute("data-period");
     document.querySelectorAll("#period-toggle .seg-btn").forEach(function(b){ b.classList.toggle("active", b===btn); });
     renderAll();
+  });
+
+  document.getElementById("cycle-select").addEventListener("change", function(e){
+    state.selectedCycleId = e.target.value || null;
+    renderAll();
+  });
+
+  document.getElementById("new-cycle-btn").addEventListener("click", function(){
+    document.getElementById("cycle-error").hidden = true;
+    document.getElementById("cycle-name").value = "";
+    document.getElementById("cycle-start").value = todayStr();
+    document.getElementById("cycle-end").value = todayStr();
+    document.getElementById("cycle-form-row").hidden = false;
+  });
+
+  document.getElementById("cancel-cycle-btn").addEventListener("click", function(){
+    document.getElementById("cycle-form-row").hidden = true;
+  });
+
+  document.getElementById("save-cycle-btn").addEventListener("click", function(){
+    var errorEl = document.getElementById("cycle-error");
+    errorEl.hidden = true;
+    var name = document.getElementById("cycle-name").value.trim();
+    var start = document.getElementById("cycle-start").value;
+    var end = document.getElementById("cycle-end").value;
+    if (!name || !start || !end){
+      errorEl.textContent = "Preencha nome, início e fim do ciclo.";
+      errorEl.hidden = false;
+      return;
+    }
+    if (end < start){
+      errorEl.textContent = "A data de fim precisa ser igual ou depois da data de início.";
+      errorEl.hidden = false;
+      return;
+    }
+    addCycle({ name: name, start_date: start, end_date: end });
+    document.getElementById("cycle-form-row").hidden = true;
+  });
+
+  document.getElementById("delete-cycle-btn").addEventListener("click", function(){
+    if (state.selectedCycleId) removeCycle(state.selectedCycleId);
   });
 
   document.getElementById("goal-input").addEventListener("change", function(e){
