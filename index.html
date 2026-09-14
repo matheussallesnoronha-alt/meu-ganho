@@ -189,6 +189,13 @@
     border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
   }
   .goal-foot{ display:flex; gap:14px; font-size:12.5px; color:var(--text-muted); font-variant-numeric: tabular-nums; }
+  .goal-remaining{ font-size:13px; font-weight:700; color:var(--accent); margin-top:8px; }
+  .goal-remaining.reached{ color:var(--good); }
+
+  .week-live-stats{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:16px; padding-top:16px; border-top:1px solid var(--border); }
+  .week-live-stat{ background:var(--surface-2); border-radius:12px; padding:12px; }
+  .week-live-label{ display:block; font-size:11px; color:var(--text-secondary); margin-bottom:6px; }
+  .week-live-value{ display:block; font-size:18px; font-weight:700; color:var(--text-primary); font-variant-numeric:tabular-nums; }
 
   /* ---------- chart ---------- */
   .chart-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; position:relative; }
@@ -444,6 +451,17 @@
 
   <div class="page" id="page-cycles" hidden>
   <section>
+    <div class="cycle-panel">
+      <div class="cycle-panel-head">
+        <span class="cycle-panel-title">Selecionar ciclo</span>
+        <button type="button" class="btn-mini" id="new-cycle-btn">+ Novo ciclo</button>
+      </div>
+      <div class="cycle-chip-row" id="cycle-chip-row"></div>
+      <p class="cycle-empty-hint" id="cycle-empty-hint" hidden>Nenhum ciclo criado ainda — clique em "+ Novo ciclo" para começar.</p>
+    </div>
+  </section>
+
+  <section>
     <h2>Meta da semana</h2>
     <div class="goal-card">
       <div class="ring-row">
@@ -458,6 +476,17 @@
           <div class="goal-title" id="goal-week-label">Semana atual</div>
           <div class="goal-input-row">Meta: R$ <input type="number" id="goal-input" min="0" step="10"></div>
           <div class="goal-foot"><span id="goal-current">R$ 0,00</span><span id="goal-target">meta R$ 0,00</span></div>
+          <div class="goal-remaining" id="goal-remaining"></div>
+        </div>
+      </div>
+      <div class="week-live-stats">
+        <div class="week-live-stat">
+          <span class="week-live-label">R$/km atual</span>
+          <span class="week-live-value" id="week-live-perkm">—</span>
+        </div>
+        <div class="week-live-stat">
+          <span class="week-live-label">Ganho por hora atual</span>
+          <span class="week-live-value" id="week-live-perhour">R$ 0,00</span>
         </div>
       </div>
     </div>
@@ -467,12 +496,6 @@
     <h2>Configurar ciclo</h2>
     <div class="section-sub" style="margin-bottom:14px;">Crie seus ciclos e defina as metas dele aqui.</div>
     <div class="cycle-panel">
-      <div class="cycle-panel-head">
-        <span class="cycle-panel-title">Ciclos salvos</span>
-        <button type="button" class="btn-mini" id="new-cycle-btn">+ Novo ciclo</button>
-      </div>
-      <div class="cycle-chip-row" id="cycle-chip-row"></div>
-      <p class="cycle-empty-hint" id="cycle-empty-hint" hidden>Nenhum ciclo criado ainda — clique em "+ Novo ciclo" para começar.</p>
       <div class="cycle-form-card" id="cycle-form-row" hidden>
         <div class="form-grid">
           <label class="full">Nome do ciclo
@@ -1198,6 +1221,22 @@
     document.getElementById("ring-pct").textContent = Math.round(pct) + "%";
     document.getElementById("goal-current").textContent = fmtBRL(gross);
     document.getElementById("goal-target").textContent = "meta " + (goal>0 ? fmtBRL(goal) : "não definida");
+
+    var remainingEl = document.getElementById("goal-remaining");
+    if (goal <= 0){
+      remainingEl.textContent = "";
+      remainingEl.classList.remove("reached");
+    } else if (gross >= goal){
+      remainingEl.textContent = "🎉 Meta batida!";
+      remainingEl.classList.add("reached");
+    } else {
+      remainingEl.textContent = "Faltam " + fmtBRL(goal - gross) + " para bater a meta";
+      remainingEl.classList.remove("reached");
+    }
+
+    var weekStats = computeStats(range, "all");
+    document.getElementById("week-live-perkm").textContent = weekStats.km > 0 ? fmtBRL(weekStats.perKm) : "—";
+    document.getElementById("week-live-perhour").textContent = fmtBRL(weekStats.perHour);
   }
 
   function hideChartTooltip(){ document.getElementById("chart-tooltip").hidden = true; }
