@@ -405,7 +405,7 @@
     <div class="tiles">
       <div class="tile tone-good"><div class="t-icon">↗</div><div class="t-label">Faturamento bruto</div><div class="t-value" id="tile-gross">R$ 0,00</div></div>
       <div class="tile tone-bad"><div class="t-icon">⛽</div><div class="t-label">Despesas</div><div class="t-value" id="tile-expenses">R$ 0,00</div></div>
-      <div class="tile tone-info"><div class="t-icon">🧭</div><div class="t-label">Corridas</div><div class="t-value" id="tile-rides">0</div></div>
+      <div class="tile tone-info"><div class="t-icon">🛣️</div><div class="t-label">Km rodados</div><div class="t-value" id="tile-km">0 km</div></div>
       <div class="tile tone-info"><div class="t-icon">🕐</div><div class="t-label">Horas trabalhadas</div><div class="t-value" id="tile-hours">0h</div></div>
       <div class="tile tone-good"><div class="t-icon">⚡</div><div class="t-label">Ganho por hora</div><div class="t-value" id="tile-perhour">R$ 0,00</div></div>
       <div class="tile tone-info"><div class="t-icon">📍</div><div class="t-label">R$ por km (bruto)</div><div class="t-value" id="tile-perkm">—</div></div>
@@ -1133,7 +1133,7 @@
     netEl.classList.toggle("negative", s.net < 0);
     document.getElementById("tile-gross").textContent = fmtBRL(s.gross);
     document.getElementById("tile-expenses").textContent = fmtBRL(s.expenses);
-    document.getElementById("tile-rides").textContent = fmtNum(s.rides, 0);
+    document.getElementById("tile-km").textContent = fmtNum(s.km, 0) + " km";
     document.getElementById("tile-hours").textContent = fmtNum(s.hours, 1) + "h";
     document.getElementById("tile-perhour").textContent = fmtBRL(s.perHour);
     document.getElementById("tile-perkm").textContent = s.km > 0 ? fmtBRL(s.perKm) : "—";
