@@ -145,6 +145,15 @@
   .tile.tone-bad .t-value{ color:var(--critical); }
   .tile.tone-info .t-icon{ background:var(--blue-soft); color:var(--blue); }
 
+  .expense-breakdown{ margin-top:12px; }
+  .expense-breakdown-title{ font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px; }
+  .expense-breakdown-list{ display:flex; flex-wrap:wrap; gap:8px; }
+  .expense-chip{
+    display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border);
+    border-radius:999px; padding:8px 14px; font-size:13px; color:var(--text-secondary);
+  }
+  .expense-chip strong{ color:var(--critical); font-variant-numeric:tabular-nums; }
+
   /* ---------- goal ---------- */
   .goal-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
   .ring-row{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
@@ -222,6 +231,18 @@
   }
   .cycle-chip-del:hover{ background:rgba(245,69,95,0.15); color:var(--critical); }
   .cycle-chip-del.confirm{ background:var(--critical); color:#fff; }
+
+  .daily-goals-panel{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .daily-goals-title{ font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:10px; }
+  .daily-goals-list{ display:flex; flex-direction:column; gap:6px; max-height:320px; overflow-y:auto; }
+  .daily-goal-row{ display:flex; align-items:center; gap:10px; background:var(--surface-2); border-radius:10px; padding:8px 10px; }
+  .daily-goal-date{ font-size:12.5px; color:var(--text-secondary); width:72px; flex-shrink:0; text-transform:capitalize; }
+  .daily-goal-input{
+    width:86px; font-family:var(--font-sans); font-size:13px; padding:6px 8px; border-radius:6px;
+    border:1px solid var(--border); background:var(--surface); color:var(--text-primary); min-width:0;
+  }
+  .daily-goal-actual{ flex:1; text-align:right; font-size:12.5px; font-variant-numeric:tabular-nums; color:var(--text-muted); }
+  .daily-goal-actual.reached{ color:var(--good); font-weight:700; }
 
   .cycle-form-card{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
   .cycle-form-card .form-grid{ margin-bottom:14px; }
@@ -360,6 +381,10 @@
       </div>
       <div class="cycle-chip-row" id="cycle-chip-row"></div>
       <p class="cycle-empty-hint" id="cycle-empty-hint" hidden>Nenhum ciclo criado ainda — clique em "+ Novo ciclo" para começar.</p>
+      <div class="daily-goals-panel" id="daily-goals-panel" hidden>
+        <div class="daily-goals-title">Metas diárias</div>
+        <div class="daily-goals-list" id="daily-goals-list"></div>
+      </div>
       <div class="cycle-form-card" id="cycle-form-row" hidden>
         <div class="form-grid">
           <label class="full">Nome do ciclo
@@ -400,6 +425,10 @@
       <div class="tile tone-info"><div class="t-icon">🕐</div><div class="t-label">Horas trabalhadas</div><div class="t-value" id="tile-hours">0h</div></div>
       <div class="tile tone-good"><div class="t-icon">⚡</div><div class="t-label">Ganho por hora</div><div class="t-value" id="tile-perhour">R$ 0,00</div></div>
       <div class="tile tone-info"><div class="t-icon">📍</div><div class="t-label">R$ por km (bruto)</div><div class="t-value" id="tile-perkm">—</div></div>
+    </div>
+    <div class="expense-breakdown" id="expense-breakdown" hidden>
+      <div class="expense-breakdown-title">Despesas por categoria</div>
+      <div class="expense-breakdown-list" id="expense-breakdown-list"></div>
     </div>
   </section>
 
@@ -478,6 +507,7 @@
           <label id="wrap-category" hidden>Categoria
             <select id="f-category">
               <option>Combustível</option>
+              <option>Alimentação</option>
               <option>Manutenção</option>
               <option>Aluguel/Financiamento</option>
               <option>Seguro</option>
@@ -818,6 +848,25 @@
     }
   }
 
+  async function updateDailyGoal(cycleId, date, value){
+    var cycle = state.cycles.find(function(c){ return c.id === cycleId; });
+    if (!cycle) return;
+    var goals = Object.assign({}, cycle.daily_goals || {});
+    if (value > 0) goals[date] = value; else delete goals[date];
+    cycle.daily_goals = goals;
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try {
+        var res = await sb.from("cycles").update({ daily_goals: goals }).eq("id", cycleId);
+        if (res.error) throw res.error;
+        setStatus("ok");
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      saveLocalCycles();
+    }
+    renderDailyGoals();
+  }
+
   /* ---------------- computations ---------------- */
 
   function computeStats(range){
@@ -850,6 +899,27 @@
     state.entries.forEach(function(e){
       if (e.kind !== "session") return;
       if (!inRange(e.date, range)) return;
+      var apps = entryApps(e);
+      Object.keys(apps).forEach(function(k){ gross += apps[k].earnings||0; });
+    });
+    return gross;
+  }
+
+  function computeExpensesByCategory(range){
+    var byCategory = {};
+    state.entries.forEach(function(e){
+      if (e.kind !== "expense") return;
+      if (!inRange(e.date, range)) return;
+      var cat = e.category || "Outro";
+      byCategory[cat] = (byCategory[cat]||0) + (Number(e.amount)||0);
+    });
+    return byCategory;
+  }
+
+  function computeGrossForDate(dateStr){
+    var gross = 0;
+    state.entries.forEach(function(e){
+      if (e.kind !== "session" || e.date !== dateStr) return;
       var apps = entryApps(e);
       Object.keys(apps).forEach(function(k){ gross += apps[k].earnings||0; });
     });
@@ -910,6 +980,7 @@
     if (sorted.length === 0){
       row.innerHTML = "";
       emptyHint.hidden = false;
+      document.getElementById("daily-goals-panel").hidden = true;
       return;
     }
     emptyHint.hidden = true;
@@ -919,6 +990,30 @@
         + '<span>'+escapeHtml(c.name)+'</span>'
         + '<span class="cycle-chip-range">'+formatShortRange(c.start_date, c.end_date)+'</span>'
         + '<button type="button" class="cycle-chip-del" data-id="'+c.id+'" title="Excluir ciclo">×</button>'
+        + '</div>';
+    }).join("");
+
+    renderDailyGoals();
+  }
+
+  function renderDailyGoals(){
+    var panel = document.getElementById("daily-goals-panel");
+    var cycle = getSelectedCycle();
+    if (!cycle){ panel.hidden = true; return; }
+    panel.hidden = false;
+
+    var days = rangeDays({ start: cycle.start_date, end: cycle.end_date });
+    var goals = cycle.daily_goals || {};
+    document.getElementById("daily-goals-list").innerHTML = days.map(function(d){
+      var dt = new Date(d + "T00:00:00");
+      var weekday = dt.toLocaleDateString("pt-BR", { weekday: "short" });
+      var goal = Number(goals[d]) || 0;
+      var actual = computeGrossForDate(d);
+      var reached = goal > 0 && actual >= goal;
+      return '<div class="daily-goal-row">'
+        + '<span class="daily-goal-date">'+weekday+' '+shortDate(d)+'</span>'
+        + '<input type="number" class="daily-goal-input" min="0" step="10" placeholder="Meta" data-date="'+d+'" value="'+(goal||"")+'">'
+        + '<span class="daily-goal-actual'+(reached?' reached':'')+'">'+fmtBRL(actual)+'</span>'
         + '</div>';
     }).join("");
   }
@@ -934,6 +1029,19 @@
     document.getElementById("tile-hours").textContent = fmtNum(s.hours, 1) + "h";
     document.getElementById("tile-perhour").textContent = fmtBRL(s.perHour);
     document.getElementById("tile-perkm").textContent = s.km > 0 ? fmtBRL(s.perKm) : "—";
+    renderExpenseBreakdown();
+  }
+
+  function renderExpenseBreakdown(){
+    var byCategory = computeExpensesByCategory(periodRange(state.filterPeriod));
+    var cats = Object.keys(byCategory);
+    var box = document.getElementById("expense-breakdown");
+    if (cats.length === 0){ box.hidden = true; return; }
+    box.hidden = false;
+    cats.sort(function(a,b){ return byCategory[b] - byCategory[a]; });
+    document.getElementById("expense-breakdown-list").innerHTML = cats.map(function(cat){
+      return '<span class="expense-chip">'+escapeHtml(cat)+' <strong>'+fmtBRL(byCategory[cat])+'</strong></span>';
+    }).join("");
   }
 
   function renderGoal(){
@@ -1161,6 +1269,12 @@
     var id = chip.getAttribute("data-id");
     state.selectedCycleId = (state.selectedCycleId === id) ? null : id;
     renderAll();
+  });
+
+  document.getElementById("daily-goals-list").addEventListener("change", function(e){
+    var input = e.target.closest(".daily-goal-input");
+    if (!input || !state.selectedCycleId) return;
+    updateDailyGoal(state.selectedCycleId, input.getAttribute("data-date"), parseFloat(input.value)||0);
   });
 
   document.getElementById("new-cycle-btn").addEventListener("click", function(){
