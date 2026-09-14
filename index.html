@@ -204,7 +204,7 @@
   /* ---------- cycle panel ---------- */
   .cycle-panel{
     background:var(--surface); border:1px solid var(--border); border-radius:16px;
-    padding:16px; margin-bottom:18px; margin-top:-8px;
+    padding:16px;
   }
   .cycle-panel-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
   .cycle-panel-title{ font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; }
@@ -252,6 +252,20 @@
     border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer;
   }
   .btn-ghost:hover{ background:var(--surface-2); }
+
+  .cycle-goals-panel{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .cycle-goals-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
+  .goal-mini{ background:var(--surface-2); border-radius:12px; padding:12px; }
+  .goal-mini label{ display:flex; flex-direction:column; gap:6px; font-size:11.5px; color:var(--text-secondary); margin-bottom:8px; }
+  .goal-mini input{
+    font-family: var(--font-sans); font-size:14px; padding:8px 10px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface); color:var(--text-primary); min-width:0;
+  }
+  .goal-mini-track{ height:7px; border-radius:999px; background:var(--surface); overflow:hidden; }
+  .goal-mini-fill{ height:100%; background:var(--accent); border-radius:999px; transition:width 0.3s ease; }
+  .goal-mini-fill.reached{ background:var(--good); }
+  .goal-mini-fill.over{ background:var(--critical); }
+  .goal-mini-foot{ font-size:11px; color:var(--text-muted); margin-top:6px; font-variant-numeric:tabular-nums; }
 
   /* ---------- form ---------- */
   .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
@@ -374,36 +388,6 @@
       <button type="button" class="seg-btn" data-period="31d">31 dias</button>
       <button type="button" class="seg-btn" data-period="cycle">Ciclo</button>
     </div>
-    <div class="cycle-panel" id="cycle-panel" hidden>
-      <div class="cycle-panel-head">
-        <span class="cycle-panel-title">Ciclos salvos</span>
-        <button type="button" class="btn-mini" id="new-cycle-btn">+ Novo ciclo</button>
-      </div>
-      <div class="cycle-chip-row" id="cycle-chip-row"></div>
-      <p class="cycle-empty-hint" id="cycle-empty-hint" hidden>Nenhum ciclo criado ainda — clique em "+ Novo ciclo" para começar.</p>
-      <div class="daily-goals-panel" id="daily-goals-panel" hidden>
-        <div class="daily-goals-title">Metas diárias</div>
-        <div class="daily-goals-list" id="daily-goals-list"></div>
-      </div>
-      <div class="cycle-form-card" id="cycle-form-row" hidden>
-        <div class="form-grid">
-          <label class="full">Nome do ciclo
-            <input type="text" id="cycle-name" placeholder="ex: Quinzena de setembro" maxlength="40">
-          </label>
-          <label>Início
-            <input type="date" id="cycle-start">
-          </label>
-          <label>Fim
-            <input type="date" id="cycle-end">
-          </label>
-        </div>
-        <div class="cycle-form-actions">
-          <button type="button" class="btn-primary" id="save-cycle-btn">Salvar ciclo</button>
-          <button type="button" class="btn-ghost" id="cancel-cycle-btn">Cancelar</button>
-        </div>
-      </div>
-      <p class="form-error" id="cycle-error" hidden></p>
-    </div>
     <div class="hero">
       <div class="hero-top">
         <div class="label">Resultado líquido</div>
@@ -448,6 +432,68 @@
           <div class="goal-input-row">Meta: R$ <input type="number" id="goal-input" min="0" step="10"></div>
           <div class="goal-foot"><span id="goal-current">R$ 0,00</span><span id="goal-target">meta R$ 0,00</span></div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Configurar ciclo</h2>
+    <div class="section-sub" style="margin-bottom:14px;">Crie seus ciclos e defina as metas dele aqui. A tela de Resultado acima é só para acompanhar.</div>
+    <div class="cycle-panel">
+      <div class="cycle-panel-head">
+        <span class="cycle-panel-title">Ciclos salvos</span>
+        <button type="button" class="btn-mini" id="new-cycle-btn">+ Novo ciclo</button>
+      </div>
+      <div class="cycle-chip-row" id="cycle-chip-row"></div>
+      <p class="cycle-empty-hint" id="cycle-empty-hint" hidden>Nenhum ciclo criado ainda — clique em "+ Novo ciclo" para começar.</p>
+      <div class="cycle-form-card" id="cycle-form-row" hidden>
+        <div class="form-grid">
+          <label class="full">Nome do ciclo
+            <input type="text" id="cycle-name" placeholder="ex: Quinzena de setembro" maxlength="40">
+          </label>
+          <label>Início
+            <input type="date" id="cycle-start">
+          </label>
+          <label>Fim
+            <input type="date" id="cycle-end">
+          </label>
+        </div>
+        <div class="cycle-form-actions">
+          <button type="button" class="btn-primary" id="save-cycle-btn">Salvar ciclo</button>
+          <button type="button" class="btn-ghost" id="cancel-cycle-btn">Cancelar</button>
+        </div>
+      </div>
+      <p class="form-error" id="cycle-error" hidden></p>
+
+      <div class="cycle-goals-panel" id="cycle-goals-panel" hidden>
+        <div class="daily-goals-title">Metas do ciclo — <span id="cycle-goals-name"></span></div>
+        <div class="cycle-goals-grid">
+          <div class="goal-mini">
+            <label>Meta de faturamento (R$)<input type="number" id="goal-revenue" min="0" step="10"></label>
+            <div class="goal-mini-track"><div class="goal-mini-fill" id="goal-revenue-fill"></div></div>
+            <div class="goal-mini-foot" id="goal-revenue-foot"></div>
+          </div>
+          <div class="goal-mini">
+            <label>Limite de despesas (R$)<input type="number" id="goal-expenses" min="0" step="10"></label>
+            <div class="goal-mini-track"><div class="goal-mini-fill" id="goal-expenses-fill"></div></div>
+            <div class="goal-mini-foot" id="goal-expenses-foot"></div>
+          </div>
+          <div class="goal-mini">
+            <label>Meta de horas trabalhadas<input type="number" id="goal-hours" min="0" step="1"></label>
+            <div class="goal-mini-track"><div class="goal-mini-fill" id="goal-hours-fill"></div></div>
+            <div class="goal-mini-foot" id="goal-hours-foot"></div>
+          </div>
+          <div class="goal-mini">
+            <label>Meta de R$ por km<input type="number" id="goal-perkm" min="0" step="0.1"></label>
+            <div class="goal-mini-track"><div class="goal-mini-fill" id="goal-perkm-fill"></div></div>
+            <div class="goal-mini-foot" id="goal-perkm-foot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="daily-goals-panel" id="daily-goals-panel" hidden>
+        <div class="daily-goals-title">Metas diárias</div>
+        <div class="daily-goals-list" id="daily-goals-list"></div>
       </div>
     </div>
   </section>
@@ -867,19 +913,41 @@
     renderDailyGoals();
   }
 
+  var CYCLE_GOAL_FIELDS = { "goal-revenue":"goal_revenue", "goal-expenses":"goal_expenses", "goal-hours":"goal_hours", "goal-perkm":"goal_per_km" };
+
+  async function updateCycleGoal(inputId, value){
+    var field = CYCLE_GOAL_FIELDS[inputId];
+    var cycle = getSelectedCycle();
+    if (!cycle || !field) return;
+    cycle[field] = value;
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try {
+        var patch = {}; patch[field] = value;
+        var res = await sb.from("cycles").update(patch).eq("id", cycle.id);
+        if (res.error) throw res.error;
+        setStatus("ok");
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      saveLocalCycles();
+    }
+    renderCycleGoals();
+  }
+
   /* ---------------- computations ---------------- */
 
-  function computeStats(range){
+  function computeStats(range, appFilter){
+    if (appFilter === undefined) appFilter = state.filterApp;
     var gross=0, rides=0, km=0, hours=0, expenses=0;
     state.entries.forEach(function(e){
       if (!inRange(e.date, range)) return;
       if (e.kind === "session"){
         var apps = entryApps(e);
-        var relevant = state.filterApp === "all";
+        var relevant = appFilter === "all";
         Object.keys(apps).forEach(function(appName){
-          if (state.filterApp !== "all" && appName !== state.filterApp) return;
+          if (appFilter !== "all" && appName !== appFilter) return;
           var a = apps[appName];
-          if (state.filterApp !== "all" && (a.earnings||0) === 0 && (a.rides||0) === 0) return;
+          if (appFilter !== "all" && (a.earnings||0) === 0 && (a.rides||0) === 0) return;
           gross += a.earnings||0;
           rides += a.rides||0;
           relevant = true;
@@ -969,10 +1037,6 @@
   }
 
   function renderCyclePanel(){
-    var panel = document.getElementById("cycle-panel");
-    panel.hidden = state.filterPeriod !== "cycle";
-    if (panel.hidden) return;
-
     var row = document.getElementById("cycle-chip-row");
     var emptyHint = document.getElementById("cycle-empty-hint");
     var sorted = state.cycles.slice().sort(function(a,b){ return (b.start_date||"").localeCompare(a.start_date||""); });
@@ -981,6 +1045,7 @@
       row.innerHTML = "";
       emptyHint.hidden = false;
       document.getElementById("daily-goals-panel").hidden = true;
+      document.getElementById("cycle-goals-panel").hidden = true;
       return;
     }
     emptyHint.hidden = true;
@@ -993,7 +1058,50 @@
         + '</div>';
     }).join("");
 
+    renderCycleGoals();
     renderDailyGoals();
+  }
+
+  function goalMiniFill(id, pct, cls){
+    var fill = document.getElementById(id);
+    fill.style.width = Math.min(100, pct) + "%";
+    fill.className = "goal-mini-fill" + (cls ? " " + cls : "");
+  }
+
+  function renderCycleGoals(){
+    var panel = document.getElementById("cycle-goals-panel");
+    var cycle = getSelectedCycle();
+    if (!cycle){ panel.hidden = true; return; }
+    panel.hidden = false;
+    document.getElementById("cycle-goals-name").textContent = cycle.name;
+
+    var range = { start: cycle.start_date, end: cycle.end_date };
+    var stats = computeStats(range, "all");
+    var focus = { active: document.activeElement };
+
+    var revInput = document.getElementById("goal-revenue");
+    if (focus.active !== revInput) revInput.value = cycle.goal_revenue || "";
+    var revGoal = Number(cycle.goal_revenue)||0;
+    goalMiniFill("goal-revenue-fill", revGoal>0 ? (stats.gross/revGoal)*100 : 0, revGoal>0 && stats.gross>=revGoal ? "reached" : "");
+    document.getElementById("goal-revenue-foot").textContent = fmtBRL(stats.gross) + (revGoal>0 ? " de " + fmtBRL(revGoal) : "");
+
+    var expInput = document.getElementById("goal-expenses");
+    if (focus.active !== expInput) expInput.value = cycle.goal_expenses || "";
+    var expGoal = Number(cycle.goal_expenses)||0;
+    goalMiniFill("goal-expenses-fill", expGoal>0 ? (stats.expenses/expGoal)*100 : 0, expGoal>0 && stats.expenses>expGoal ? "over" : "");
+    document.getElementById("goal-expenses-foot").textContent = fmtBRL(stats.expenses) + (expGoal>0 ? " de " + fmtBRL(expGoal) + " limite" : "");
+
+    var hoursInput = document.getElementById("goal-hours");
+    if (focus.active !== hoursInput) hoursInput.value = cycle.goal_hours || "";
+    var hoursGoal = Number(cycle.goal_hours)||0;
+    goalMiniFill("goal-hours-fill", hoursGoal>0 ? (stats.hours/hoursGoal)*100 : 0, hoursGoal>0 && stats.hours>=hoursGoal ? "reached" : "");
+    document.getElementById("goal-hours-foot").textContent = fmtNum(stats.hours,1) + "h" + (hoursGoal>0 ? " de " + fmtNum(hoursGoal,1) + "h" : "");
+
+    var perKmInput = document.getElementById("goal-perkm");
+    if (focus.active !== perKmInput) perKmInput.value = cycle.goal_per_km || "";
+    var perKmGoal = Number(cycle.goal_per_km)||0;
+    goalMiniFill("goal-perkm-fill", perKmGoal>0 ? (stats.perKm/perKmGoal)*100 : 0, perKmGoal>0 && stats.perKm>=perKmGoal ? "reached" : "");
+    document.getElementById("goal-perkm-foot").textContent = (stats.km>0 ? fmtBRL(stats.perKm) : "—") + (perKmGoal>0 ? " de " + fmtBRL(perKmGoal) : "");
   }
 
   function renderDailyGoals(){
@@ -1275,6 +1383,12 @@
     var input = e.target.closest(".daily-goal-input");
     if (!input || !state.selectedCycleId) return;
     updateDailyGoal(state.selectedCycleId, input.getAttribute("data-date"), parseFloat(input.value)||0);
+  });
+
+  ["goal-revenue","goal-expenses","goal-hours","goal-perkm"].forEach(function(id){
+    document.getElementById(id).addEventListener("change", function(e){
+      updateCycleGoal(id, parseFloat(e.target.value)||0);
+    });
   });
 
   document.getElementById("new-cycle-btn").addEventListener("click", function(){
