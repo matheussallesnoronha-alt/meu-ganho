@@ -63,7 +63,22 @@
     width: 100%;
     min-height: 100dvh;
   }
-  .wrap{ max-width: 920px; margin: 0 auto; padding: 20px 16px 64px; min-width: 0; }
+  .wrap{ max-width: 920px; margin: 0 auto; padding: 20px 16px 96px; min-width: 0; }
+  .page[hidden]{ display:none; }
+
+  .bottom-nav{
+    position:fixed; left:0; right:0; bottom:0; z-index:40;
+    display:flex; justify-content:space-around; align-items:stretch;
+    background:var(--surface); border-top:1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .nav-btn{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+    padding:9px 4px 8px; border:none; background:transparent; color:var(--text-muted);
+    font-family:var(--font-sans); font-size:10.5px; font-weight:600; cursor:pointer;
+  }
+  .nav-icon{ font-size:19px; line-height:1; }
+  .nav-btn.active{ color:var(--accent); }
   /* grid/flex items default to a content-based minimum width that can force
      horizontal overflow; zero it out everywhere and let cramped boxes scroll
      internally instead of pushing the page sideways. */
@@ -334,7 +349,7 @@
 
   /* ---------- mobile ---------- */
   @media (max-width: 480px){
-    .wrap{ padding: 16px 12px 48px; }
+    .wrap{ padding: 16px 12px 88px; }
     .topbar{ flex-wrap: wrap; row-gap: 10px; }
     .brand h1{ font-size: 18px; }
     .btn-pill-primary{ padding: 9px 14px; font-size: 12.5px; }
@@ -358,7 +373,7 @@
         <p class="tagline">Faça cada km valer</p>
       </div>
     </div>
-    <a href="#add-form" class="btn-pill-primary">+ Registrar</a>
+    <button type="button" class="btn-pill-primary" data-page="add">+ Registrar</button>
   </div>
   <div class="sync-row">
     <span class="status-chip" id="status-chip"><span class="status-dot"></span><span id="status-text">Conectando…</span></span>
@@ -368,6 +383,7 @@
     💾 Não foi possível conectar ao banco de dados agora — os dados estão sendo salvos apenas neste navegador (localStorage). Evite limpar os dados do navegador para não perdê-los.
   </div>
 
+  <div class="page" id="page-home">
   <section>
     <div class="section-head">
       <div>
@@ -417,6 +433,17 @@
   </section>
 
   <section>
+    <h2 id="chart-title">Faturamento por dia — Semana atual</h2>
+    <div class="chart-card">
+      <div class="chart-scroll"><svg id="chart-svg" viewBox="0 0 700 220"></svg></div>
+      <div class="chart-legend" id="chart-legend" hidden></div>
+      <div class="chart-empty" id="chart-empty" hidden></div>
+    </div>
+  </section>
+  </div>
+
+  <div class="page" id="page-cycles" hidden>
+  <section>
     <h2>Meta da semana</h2>
     <div class="goal-card">
       <div class="ring-row">
@@ -438,7 +465,7 @@
 
   <section>
     <h2>Configurar ciclo</h2>
-    <div class="section-sub" style="margin-bottom:14px;">Crie seus ciclos e defina as metas dele aqui. A tela de Resultado acima é só para acompanhar.</div>
+    <div class="section-sub" style="margin-bottom:14px;">Crie seus ciclos e defina as metas dele aqui.</div>
     <div class="cycle-panel">
       <div class="cycle-panel-head">
         <span class="cycle-panel-title">Ciclos salvos</span>
@@ -497,16 +524,9 @@
       </div>
     </div>
   </section>
+  </div>
 
-  <section>
-    <h2 id="chart-title">Faturamento por dia — Semana atual</h2>
-    <div class="chart-card">
-      <div class="chart-scroll"><svg id="chart-svg" viewBox="0 0 700 220"></svg></div>
-      <div class="chart-legend" id="chart-legend" hidden></div>
-      <div class="chart-empty" id="chart-empty" hidden></div>
-    </div>
-  </section>
-
+  <div class="page" id="page-add" hidden>
   <section id="add-form">
     <h2>Adicionar registro</h2>
     <div class="form-card">
@@ -572,16 +592,26 @@
       </form>
     </div>
   </section>
+  </div>
 
+  <div class="page" id="page-history" hidden>
   <section>
     <h2>Histórico</h2>
     <div class="history-card">
       <div id="history-list"></div>
     </div>
   </section>
+  </div>
 
   <footer class="note" id="footer-note"></footer>
 </div>
+
+<nav class="bottom-nav" id="bottom-nav">
+  <button type="button" class="nav-btn active" data-page="home"><span class="nav-icon">🏠</span><span>Início</span></button>
+  <button type="button" class="nav-btn" data-page="cycles"><span class="nav-icon">🔄</span><span>Ciclos</span></button>
+  <button type="button" class="nav-btn" data-page="add"><span class="nav-icon">➕</span><span>Registrar</span></button>
+  <button type="button" class="nav-btn" data-page="history"><span class="nav-icon">🕐</span><span>Histórico</span></button>
+</nav>
 
 <div class="chart-tooltip" id="chart-tooltip" hidden></div>
 
@@ -1481,8 +1511,8 @@
       document.getElementById("f-category").value = entry.category;
       document.getElementById("f-amount").value = entry.amount || "";
     }
-    var section = document.getElementById("add-form");
-    if (section && section.scrollIntoView) section.scrollIntoView({ behavior: "smooth", block: "start" });
+    showPage("add");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   document.getElementById("kind-toggle").addEventListener("click", function(e){
@@ -1572,9 +1602,30 @@
     }
   });
 
+  function showPage(page){
+    ["home","cycles","add","history"].forEach(function(p){
+      document.getElementById("page-"+p).hidden = p !== page;
+    });
+    document.querySelectorAll(".nav-btn").forEach(function(b){
+      b.classList.toggle("active", b.getAttribute("data-page") === page);
+    });
+    window.scrollTo({ top: 0 });
+  }
+
+  document.getElementById("bottom-nav").addEventListener("click", function(e){
+    var btn = e.target.closest(".nav-btn");
+    if (!btn) return;
+    showPage(btn.getAttribute("data-page"));
+  });
+
+  document.querySelector('.btn-pill-primary[data-page="add"]').addEventListener("click", function(){
+    showPage("add");
+  });
+
   document.getElementById("f-date").value = todayStr();
   document.getElementById("footer-note").textContent = "Seus dados ficam guardados neste painel — nada é enviado para o Uber, 99 ou outros apps.";
   applyKind("session");
+  showPage("home");
 
   setStatus("connecting");
   initStore();
