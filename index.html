@@ -194,24 +194,43 @@
 
   /* ---------- cycle panel ---------- */
   .cycle-panel{
-    background:var(--surface); border:1px solid var(--border); border-radius:14px;
-    padding:14px; margin-bottom:18px; margin-top:-8px;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    padding:16px; margin-bottom:18px; margin-top:-8px;
   }
-  .cycle-panel-row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .cycle-panel-row select{ flex:1; min-width:160px; }
-  .cycle-form-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
-  .cycle-form-row input[type="text"]{ flex:1; min-width:140px; }
-  .cycle-form-row input{
-    font-family: var(--font-sans); font-size:13px; padding:8px 10px; border-radius:8px;
-    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary); min-width:0;
-  }
+  .cycle-panel-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+  .cycle-panel-title{ font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; }
   .btn-mini{
-    font-family: var(--font-sans); font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:8px;
-    border:none; background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap;
+    font-family: var(--font-sans); font-size:12.5px; font-weight:700; padding:8px 14px; border-radius:999px;
+    border:none; background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap; flex-shrink:0;
   }
   .btn-mini:hover{ background:var(--accent-strong); }
-  .btn-mini.danger{ background:var(--critical-soft); color:var(--critical); }
-  .btn-mini.danger:hover{ background:rgba(245,69,95,0.3); }
+
+  .cycle-chip-row{ display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
+  .cycle-empty-hint{ font-size:12.5px; color:var(--text-muted); padding:2px 0; }
+  .cycle-chip{
+    display:flex; align-items:center; gap:8px; flex-shrink:0; cursor:pointer;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:999px;
+    padding:8px 6px 8px 14px; font-size:13px; font-weight:600; color:var(--text-secondary); white-space:nowrap;
+  }
+  .cycle-chip:hover{ border-color:var(--accent); }
+  .cycle-chip .cycle-chip-range{ font-size:11px; font-weight:400; color:var(--text-muted); }
+  .cycle-chip.active{ background:var(--good-soft); border-color:var(--accent); color:var(--text-primary); }
+  .cycle-chip.active .cycle-chip-range{ color:var(--text-secondary); }
+  .cycle-chip-del{
+    border:none; background:transparent; color:var(--text-muted); font-size:13px; cursor:pointer;
+    width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .cycle-chip-del:hover{ background:rgba(245,69,95,0.15); color:var(--critical); }
+  .cycle-chip-del.confirm{ background:var(--critical); color:#fff; }
+
+  .cycle-form-card{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+  .cycle-form-card .form-grid{ margin-bottom:14px; }
+  .cycle-form-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+  .btn-ghost{
+    font-family: var(--font-sans); font-size:14px; font-weight:600; padding:11px 20px; border-radius:999px;
+    border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer;
+  }
+  .btn-ghost:hover{ background:var(--surface-2); }
 
   /* ---------- form ---------- */
   .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
@@ -335,17 +354,28 @@
       <button type="button" class="seg-btn" data-period="cycle">Ciclo</button>
     </div>
     <div class="cycle-panel" id="cycle-panel" hidden>
-      <div class="cycle-panel-row">
-        <select id="cycle-select"><option value="">Selecione um ciclo…</option></select>
+      <div class="cycle-panel-head">
+        <span class="cycle-panel-title">Ciclos salvos</span>
         <button type="button" class="btn-mini" id="new-cycle-btn">+ Novo ciclo</button>
-        <button type="button" class="btn-mini danger" id="delete-cycle-btn" hidden>Excluir</button>
       </div>
-      <div class="cycle-form-row" id="cycle-form-row" hidden>
-        <input type="text" id="cycle-name" placeholder="Nome do ciclo" maxlength="40">
-        <input type="date" id="cycle-start">
-        <input type="date" id="cycle-end">
-        <button type="button" class="btn-mini" id="save-cycle-btn">Salvar</button>
-        <button type="button" class="btn-mini" id="cancel-cycle-btn">Cancelar</button>
+      <div class="cycle-chip-row" id="cycle-chip-row"></div>
+      <p class="cycle-empty-hint" id="cycle-empty-hint" hidden>Nenhum ciclo criado ainda — clique em "+ Novo ciclo" para começar.</p>
+      <div class="cycle-form-card" id="cycle-form-row" hidden>
+        <div class="form-grid">
+          <label class="full">Nome do ciclo
+            <input type="text" id="cycle-name" placeholder="ex: Quinzena de setembro" maxlength="40">
+          </label>
+          <label>Início
+            <input type="date" id="cycle-start">
+          </label>
+          <label>Fim
+            <input type="date" id="cycle-end">
+          </label>
+        </div>
+        <div class="cycle-form-actions">
+          <button type="button" class="btn-primary" id="save-cycle-btn">Salvar ciclo</button>
+          <button type="button" class="btn-ghost" id="cancel-cycle-btn">Cancelar</button>
+        </div>
       </div>
       <p class="form-error" id="cycle-error" hidden></p>
     </div>
@@ -873,14 +903,24 @@
     panel.hidden = state.filterPeriod !== "cycle";
     if (panel.hidden) return;
 
-    var select = document.getElementById("cycle-select");
+    var row = document.getElementById("cycle-chip-row");
+    var emptyHint = document.getElementById("cycle-empty-hint");
     var sorted = state.cycles.slice().sort(function(a,b){ return (b.start_date||"").localeCompare(a.start_date||""); });
-    select.innerHTML = '<option value="">Selecione um ciclo…</option>' + sorted.map(function(c){
-      return '<option value="'+c.id+'">'+escapeHtml(c.name)+' ('+formatShortRange(c.start_date, c.end_date)+')</option>';
-    }).join("");
-    select.value = state.selectedCycleId || "";
 
-    document.getElementById("delete-cycle-btn").hidden = !state.selectedCycleId;
+    if (sorted.length === 0){
+      row.innerHTML = "";
+      emptyHint.hidden = false;
+      return;
+    }
+    emptyHint.hidden = true;
+    row.innerHTML = sorted.map(function(c){
+      var isActive = c.id === state.selectedCycleId;
+      return '<div class="cycle-chip'+(isActive?' active':'')+'" data-id="'+c.id+'">'
+        + '<span>'+escapeHtml(c.name)+'</span>'
+        + '<span class="cycle-chip-range">'+formatShortRange(c.start_date, c.end_date)+'</span>'
+        + '<button type="button" class="cycle-chip-del" data-id="'+c.id+'" title="Excluir ciclo">×</button>'
+        + '</div>';
+    }).join("");
   }
 
   function renderTiles(){
@@ -1094,8 +1134,32 @@
     renderAll();
   });
 
-  document.getElementById("cycle-select").addEventListener("change", function(e){
-    state.selectedCycleId = e.target.value || null;
+  var pendingDeleteCycle = null;
+  document.getElementById("cycle-chip-row").addEventListener("click", function(e){
+    var delBtn = e.target.closest(".cycle-chip-del");
+    if (delBtn){
+      var cid = delBtn.getAttribute("data-id");
+      if (pendingDeleteCycle === cid){
+        pendingDeleteCycle = null;
+        removeCycle(cid);
+      } else {
+        pendingDeleteCycle = cid;
+        delBtn.textContent = "✓";
+        delBtn.classList.add("confirm");
+        setTimeout(function(){
+          if (pendingDeleteCycle === cid){
+            pendingDeleteCycle = null;
+            delBtn.textContent = "×";
+            delBtn.classList.remove("confirm");
+          }
+        }, 2500);
+      }
+      return;
+    }
+    var chip = e.target.closest(".cycle-chip");
+    if (!chip) return;
+    var id = chip.getAttribute("data-id");
+    state.selectedCycleId = (state.selectedCycleId === id) ? null : id;
     renderAll();
   });
 
@@ -1129,10 +1193,6 @@
     }
     addCycle({ name: name, start_date: start, end_date: end });
     document.getElementById("cycle-form-row").hidden = true;
-  });
-
-  document.getElementById("delete-cycle-btn").addEventListener("click", function(){
-    if (state.selectedCycleId) removeCycle(state.selectedCycleId);
   });
 
   document.getElementById("goal-input").addEventListener("change", function(e){
