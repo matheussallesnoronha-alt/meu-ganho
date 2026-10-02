@@ -247,6 +247,32 @@
   .cycle-chip .cycle-chip-range{ font-size:11px; font-weight:400; color:var(--text-muted); }
   .cycle-chip.active{ background:var(--good-soft); border-color:var(--accent); color:var(--text-primary); }
   .cycle-chip.active .cycle-chip-range{ color:var(--text-secondary); }
+  .cycle-chip.nodel{ padding-right:14px; }
+  .home-cycle-pick{ margin:-6px 0 16px; }
+  .cycle-vehicle-row{ margin-bottom:12px; }
+  .cycle-vehicle-row label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--text-secondary); }
+  .cycle-vehicle-row input, .cycle-form-card input[type="text"]{
+    font-family: var(--font-sans); font-size:14px; padding:10px 11px; border-radius:10px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary); min-width:0;
+  }
+
+  .day-card{ background:var(--surface); border:1px solid var(--border); border-radius:18px; padding:18px; }
+  .day-nav{ display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .day-nav input[type="date"]{
+    flex:1; min-width:140px; font-family:var(--font-sans); font-size:14px; padding:9px 10px; border-radius:10px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-primary);
+  }
+  .day-arrow{
+    width:38px; height:38px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--text-primary); font-size:20px; line-height:1; cursor:pointer; flex-shrink:0;
+  }
+  .day-arrow:hover{ border-color:var(--accent); }
+  .day-net-label{ font-size:12px; color:var(--text-secondary); }
+  .day-net{ font-size:32px; font-weight:800; font-variant-numeric:tabular-nums; margin:4px 0 14px; }
+  .day-net.negative{ color:var(--critical); }
+  .day-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px; }
+  .day-stat{ background:var(--surface-2); border-radius:12px; padding:10px 12px; min-width:0; }
+  .day-stat-value{ display:block; font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; }
   .cycle-chip-del{
     border:none; background:transparent; color:var(--text-muted); font-size:13px; cursor:pointer;
     width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;
@@ -411,6 +437,10 @@
       <button type="button" class="seg-btn" data-period="31d">31 dias</button>
       <button type="button" class="seg-btn" data-period="cycle">Ciclo</button>
     </div>
+    <div class="home-cycle-pick" id="home-cycle-pick" hidden>
+      <div class="cycle-chip-row" id="home-cycle-chip-row"></div>
+      <p class="cycle-empty-hint" id="home-cycle-hint" hidden>Nenhum ciclo criado ainda — crie um na aba Ciclos.</p>
+    </div>
     <div class="hero">
       <div class="hero-top">
         <div class="label">Resultado líquido</div>
@@ -445,6 +475,34 @@
       <div class="chart-scroll"><svg id="chart-svg" viewBox="0 0 700 220"></svg></div>
       <div class="chart-legend" id="chart-legend" hidden></div>
       <div class="chart-empty" id="chart-empty" hidden></div>
+    </div>
+  </section>
+
+  <section id="day-section">
+    <div class="section-head">
+      <div>
+        <h2>Valor do dia</h2>
+        <div class="section-sub" id="day-vehicle">Escolha um dia ou toque numa barra do gráfico</div>
+      </div>
+    </div>
+    <div class="day-card">
+      <div class="day-nav">
+        <button type="button" class="day-arrow" id="day-prev" aria-label="Dia anterior">‹</button>
+        <input type="date" id="day-input">
+        <button type="button" class="day-arrow" id="day-next" aria-label="Próximo dia">›</button>
+        <button type="button" class="btn-mini" id="day-today">Hoje</button>
+      </div>
+      <div class="day-net-label">Resultado líquido do dia</div>
+      <div class="day-net" id="day-net">R$ 0,00</div>
+      <div class="day-grid">
+        <div class="day-stat"><span class="week-live-label">Faturamento</span><span class="day-stat-value" id="day-gross">R$ 0,00</span></div>
+        <div class="day-stat"><span class="week-live-label">Despesas</span><span class="day-stat-value" id="day-expenses">R$ 0,00</span></div>
+        <div class="day-stat"><span class="week-live-label">Km rodados</span><span class="day-stat-value" id="day-km">0 km</span></div>
+        <div class="day-stat"><span class="week-live-label">Horas</span><span class="day-stat-value" id="day-hours">0h</span></div>
+        <div class="day-stat"><span class="week-live-label">Ganho por hora</span><span class="day-stat-value" id="day-perhour">R$ 0,00</span></div>
+        <div class="day-stat"><span class="week-live-label">R$ por km</span><span class="day-stat-value" id="day-perkm">—</span></div>
+      </div>
+      <div class="hist-chips" id="day-apps" style="margin-top:12px"></div>
     </div>
   </section>
   </div>
@@ -507,6 +565,9 @@
           <label>Fim
             <input type="date" id="cycle-end">
           </label>
+          <label class="full">Carro utilizado
+            <input type="text" id="cycle-vehicle" list="vehicle-list" placeholder="ex: Onix 2020 - ABC1D23" maxlength="60">
+          </label>
         </div>
         <div class="cycle-form-actions">
           <button type="button" class="btn-primary" id="save-cycle-btn">Salvar ciclo</button>
@@ -517,6 +578,11 @@
 
       <div class="cycle-goals-panel" id="cycle-goals-panel" hidden>
         <div class="daily-goals-title">Metas do ciclo — <span id="cycle-goals-name"></span></div>
+        <div class="cycle-vehicle-row">
+          <label>🚗 Carro utilizado neste ciclo
+            <input type="text" id="cycle-vehicle-edit" list="vehicle-list" placeholder="ex: Onix 2020 - ABC1D23" maxlength="60">
+          </label>
+        </div>
         <div class="cycle-goals-grid">
           <div class="goal-mini">
             <label>Meta de faturamento (R$)<input type="number" id="goal-revenue" min="0" step="10"></label>
@@ -636,6 +702,7 @@
   <button type="button" class="nav-btn" data-page="history"><span class="nav-icon">🕐</span><span>Histórico</span></button>
 </nav>
 
+<datalist id="vehicle-list"></datalist>
 <div class="chart-tooltip" id="chart-tooltip" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -654,6 +721,7 @@
     cycles: [],
     filterPeriod: "semana",
     selectedCycleId: null,
+    selectedDay: todayStr(),
     filterApp: "all",
     weeklyGoal: 0,
     storeMode: null
@@ -665,7 +733,16 @@
   function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
   function appFill(app){ return css(SERIES_VAR[app] || "--text-muted"); }
 
-  function todayStr(){ return new Date().toISOString().slice(0,10); }
+  function todayStr(){
+    var d = new Date();
+    var m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+    return d.getFullYear() + "-" + m + "-" + day;
+  }
+  function shiftDay(dateStr, delta){
+    var d = new Date(dateStr + "T00:00:00");
+    d.setDate(d.getDate() + delta);
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
   function escapeHtml(s){
     return String(s == null ? "" : s).replace(/[&<>"']/g, function(c){
       return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c];
@@ -966,6 +1043,23 @@
     renderDailyGoals();
   }
 
+  async function updateCycleVehicle(value){
+    var cycle = getSelectedCycle();
+    if (!cycle) return;
+    cycle.vehicle = value;
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try {
+        var res = await sb.from("cycles").update({ vehicle: value || null }).eq("id", cycle.id);
+        if (res.error) throw res.error;
+        setStatus("ok");
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      saveLocalCycles();
+    }
+    renderAll();
+  }
+
   var CYCLE_GOAL_FIELDS = { "goal-revenue":"goal_revenue", "goal-expenses":"goal_expenses", "goal-hours":"goal_hours", "goal-perkm":"goal_per_km" };
 
   async function updateCycleGoal(inputId, value){
@@ -1068,10 +1162,84 @@
   function renderAll(){
     renderPeriodLabel();
     renderCyclePanel();
+    renderHomeCycles();
     renderTiles();
     renderGoal();
     renderChart();
+    renderDayCard();
     renderHistory();
+  }
+
+  function cycleChipHtml(c, withDel){
+    var isActive = c.id === state.selectedCycleId;
+    return '<div class="cycle-chip'+(isActive?' active':'')+(withDel?'':' nodel')+'" data-id="'+c.id+'">'
+      + '<span>'+escapeHtml(c.name)+'</span>'
+      + '<span class="cycle-chip-range">'+formatShortRange(c.start_date, c.end_date)+(c.vehicle ? ' · 🚗 '+escapeHtml(c.vehicle) : '')+'</span>'
+      + (withDel ? '<button type="button" class="cycle-chip-del" data-id="'+c.id+'" title="Excluir ciclo">×</button>' : '')
+      + '</div>';
+  }
+
+  function sortedCycles(){
+    return state.cycles.slice().sort(function(a,b){ return (b.start_date||"").localeCompare(a.start_date||""); });
+  }
+
+  function renderVehicleList(){
+    var seen = {};
+    state.cycles.forEach(function(c){ if (c.vehicle) seen[c.vehicle] = true; });
+    document.getElementById("vehicle-list").innerHTML = Object.keys(seen).map(function(v){
+      return '<option value="'+escapeHtml(v)+'"></option>';
+    }).join("");
+  }
+
+  function renderHomeCycles(){
+    var box = document.getElementById("home-cycle-pick");
+    box.hidden = state.filterPeriod !== "cycle";
+    if (box.hidden) return;
+    var list = sortedCycles();
+    document.getElementById("home-cycle-hint").hidden = list.length > 0;
+    document.getElementById("home-cycle-chip-row").innerHTML = list.map(function(c){ return cycleChipHtml(c, false); }).join("");
+  }
+
+  function renderDayCard(){
+    var d = state.selectedDay || todayStr();
+    var input = document.getElementById("day-input");
+    if (input.value !== d) input.value = d;
+    var range = { start: d, end: d };
+    var s = computeStats(range);
+    var netEl = document.getElementById("day-net");
+    netEl.textContent = fmtBRL(s.net);
+    netEl.classList.toggle("negative", s.net < 0);
+    document.getElementById("day-gross").textContent = fmtBRL(s.gross);
+    document.getElementById("day-expenses").textContent = fmtBRL(s.expenses);
+    document.getElementById("day-km").textContent = fmtNum(s.km, 0) + " km";
+    document.getElementById("day-hours").textContent = fmtNum(s.hours, 1) + "h";
+    document.getElementById("day-perhour").textContent = fmtBRL(s.perHour);
+    document.getElementById("day-perkm").textContent = s.km > 0 ? fmtBRL(s.perKm) : "—";
+
+    var perApp = {};
+    state.entries.forEach(function(e){
+      if (e.kind !== "session" || e.date !== d) return;
+      var apps = entryApps(e);
+      Object.keys(apps).forEach(function(k){
+        if (state.filterApp !== "all" && k !== state.filterApp) return;
+        perApp[k] = (perApp[k]||0) + (apps[k].earnings||0);
+      });
+    });
+    document.getElementById("day-apps").innerHTML = Object.keys(perApp).filter(function(k){ return perApp[k] > 0; }).map(function(k){
+      return '<span class="chip" style="color:'+appFill(k)+'">'+escapeHtml(k)+' '+fmtBRL(perApp[k])+'</span>';
+    }).join("");
+
+    var cycle = sortedCycles().find(function(c){ return d >= c.start_date && d <= c.end_date; });
+    var label = formatFullDate(d);
+    document.getElementById("day-vehicle").textContent = label + (cycle
+      ? " · ciclo " + cycle.name + (cycle.vehicle ? " · 🚗 " + cycle.vehicle : "")
+      : " · fora de qualquer ciclo");
+  }
+
+  function setSelectedDay(d){
+    if (!d) return;
+    state.selectedDay = d;
+    renderDayCard();
   }
 
   function renderPeriodLabel(){
@@ -1084,7 +1252,9 @@
       name = PERIOD_NAMES[state.filterPeriod];
     }
     var hasRange = state.filterPeriod !== "cycle" || getSelectedCycle();
-    document.getElementById("period-label").textContent = hasRange ? (name + " (" + formatShortRange(range.start, range.end) + ")") : name;
+    var selCycle = state.filterPeriod === "cycle" ? getSelectedCycle() : null;
+    document.getElementById("period-label").textContent = (hasRange ? (name + " (" + formatShortRange(range.start, range.end) + ")") : name)
+      + (selCycle && selCycle.vehicle ? " · 🚗 " + selCycle.vehicle : "");
     document.getElementById("hero-sub").textContent = "Faturamento menos despesas — " + name.toLowerCase();
     document.getElementById("chart-title").textContent = "Faturamento por dia — " + name;
   }
@@ -1102,15 +1272,9 @@
       return;
     }
     emptyHint.hidden = true;
-    row.innerHTML = sorted.map(function(c){
-      var isActive = c.id === state.selectedCycleId;
-      return '<div class="cycle-chip'+(isActive?' active':'')+'" data-id="'+c.id+'">'
-        + '<span>'+escapeHtml(c.name)+'</span>'
-        + '<span class="cycle-chip-range">'+formatShortRange(c.start_date, c.end_date)+'</span>'
-        + '<button type="button" class="cycle-chip-del" data-id="'+c.id+'" title="Excluir ciclo">×</button>'
-        + '</div>';
-    }).join("");
+    row.innerHTML = sorted.map(function(c){ return cycleChipHtml(c, true); }).join("");
 
+    renderVehicleList();
     renderCycleGoals();
     renderDailyGoals();
   }
@@ -1127,6 +1291,8 @@
     if (!cycle){ panel.hidden = true; return; }
     panel.hidden = false;
     document.getElementById("cycle-goals-name").textContent = cycle.name;
+    var vehInput = document.getElementById("cycle-vehicle-edit");
+    if (document.activeElement !== vehInput) vehInput.value = cycle.vehicle || "";
 
     var range = { start: cycle.start_date, end: cycle.end_date };
     var stats = computeStats(range, "all");
@@ -1333,6 +1499,11 @@
         rect.addEventListener("mouseenter", function(e){ showChartTooltip(e, data[idx], apps); });
         rect.addEventListener("mousemove", positionTooltip);
         rect.addEventListener("mouseleave", hideChartTooltip);
+        rect.addEventListener("click", function(){
+          setSelectedDay(data[idx].date);
+          var sec = document.getElementById("day-section");
+          if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior:"smooth", block:"start" });
+        });
       })(hitEls[k]);
     }
 
@@ -1463,6 +1634,7 @@
   document.getElementById("new-cycle-btn").addEventListener("click", function(){
     document.getElementById("cycle-error").hidden = true;
     document.getElementById("cycle-name").value = "";
+    document.getElementById("cycle-vehicle").value = "";
     document.getElementById("cycle-start").value = todayStr();
     document.getElementById("cycle-end").value = todayStr();
     document.getElementById("cycle-form-row").hidden = false;
@@ -1488,9 +1660,28 @@
       errorEl.hidden = false;
       return;
     }
-    addCycle({ name: name, start_date: start, end_date: end });
+    var newCycle = { name: name, start_date: start, end_date: end };
+    var vehicle = document.getElementById("cycle-vehicle").value.trim();
+    if (vehicle) newCycle.vehicle = vehicle;
+    addCycle(newCycle);
     document.getElementById("cycle-form-row").hidden = true;
   });
+
+  document.getElementById("cycle-vehicle-edit").addEventListener("change", function(e){
+    updateCycleVehicle(e.target.value.trim());
+  });
+
+  document.getElementById("home-cycle-chip-row").addEventListener("click", function(e){
+    var chip = e.target.closest(".cycle-chip");
+    if (!chip) return;
+    state.selectedCycleId = chip.getAttribute("data-id");
+    renderAll();
+  });
+
+  document.getElementById("day-input").addEventListener("change", function(e){ setSelectedDay(e.target.value); });
+  document.getElementById("day-prev").addEventListener("click", function(){ setSelectedDay(shiftDay(state.selectedDay, -1)); });
+  document.getElementById("day-next").addEventListener("click", function(){ setSelectedDay(shiftDay(state.selectedDay, 1)); });
+  document.getElementById("day-today").addEventListener("click", function(){ setSelectedDay(todayStr()); });
 
   document.getElementById("goal-input").addEventListener("change", function(e){
     saveGoal(parseFloat(e.target.value)||0);
