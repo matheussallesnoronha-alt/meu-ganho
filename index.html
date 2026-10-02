@@ -1255,6 +1255,10 @@
     var ids = list.map(function(c){ return c.id; });
     if (ids.indexOf(state.cmpA) === -1) state.cmpA = ids.length > 1 ? ids[1] : (ids[0] || null);
     if (ids.indexOf(state.cmpB) === -1) state.cmpB = ids[0] || null;
+    if (ids.length > 1 && state.cmpA === state.cmpB){
+      state.cmpB = ids[0];
+      state.cmpA = ids.find(function(i){ return i !== state.cmpB; });
+    }
     var opts = list.map(function(c){
       return '<option value="'+c.id+'">'+escapeHtml(c.name)+' ('+formatShortRange(c.start_date, c.end_date)+')</option>';
     }).join("");
@@ -1819,8 +1823,14 @@
   document.getElementById("cycle-start-edit").addEventListener("change", function(e){ updateCycleInfo({ start_date: e.target.value }); });
   document.getElementById("cycle-end-edit").addEventListener("change", function(e){ updateCycleInfo({ end_date: e.target.value }); });
 
-  document.getElementById("cmp-a").addEventListener("change", function(e){ state.cmpA = e.target.value; renderCompare(); });
-  document.getElementById("cmp-b").addEventListener("change", function(e){ state.cmpB = e.target.value; renderCompare(); });
+  document.getElementById("cmp-a").addEventListener("change", function(e){
+    if (e.target.value === state.cmpB) state.cmpB = state.cmpA;
+    state.cmpA = e.target.value; renderCompare();
+  });
+  document.getElementById("cmp-b").addEventListener("change", function(e){
+    if (e.target.value === state.cmpA) state.cmpA = state.cmpB;
+    state.cmpB = e.target.value; renderCompare();
+  });
 
   document.getElementById("cycle-vehicle-edit").addEventListener("change", function(e){
     updateCycleVehicle(e.target.value.trim());
