@@ -249,6 +249,22 @@
   .cycle-chip.active .cycle-chip-range{ color:var(--text-secondary); }
   .cycle-chip.nodel{ padding-right:14px; }
   .home-cycle-pick{ margin:-6px 0 16px; }
+  .cycle-edit-grid{ margin-bottom:14px; }
+  .cmp-pickers{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:14px; }
+  .cmp-pickers label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--text-secondary); min-width:0; }
+  .cmp-pickers select{ width:100%; min-width:0; }
+  .cmp-table-wrap{ background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:6px 4px; overflow-x:auto; }
+  .cmp-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .cmp-table th{ text-align:right; font-size:11px; color:var(--text-secondary); font-weight:700; padding:10px 8px; border-bottom:1px solid var(--border); vertical-align:bottom; }
+  .cmp-table th:first-child, .cmp-table td:first-child{ text-align:left; color:var(--text-secondary); }
+  .cmp-table td{ text-align:right; padding:10px 8px; border-bottom:1px solid var(--border); font-variant-numeric:tabular-nums; font-weight:600; }
+  .cmp-table tr:last-child td{ border-bottom:none; }
+  .cmp-table .cmp-sub{ display:block; font-weight:400; font-size:10.5px; color:var(--text-muted); }
+  .cmp-table .win{ color:var(--good); }
+  .cmp-table .lose{ color:var(--critical); }
+  .cmp-table .delta{ display:block; font-size:10.5px; font-weight:600; color:var(--text-muted); }
+  .cmp-table .delta.win{ color:var(--good); }
+  .cmp-table .delta.lose{ color:var(--critical); }
   .cycle-vehicle-row{ margin-bottom:12px; }
   .cycle-vehicle-row label{ display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--text-secondary); }
   .cycle-vehicle-row input, .cycle-form-card input[type="text"]{
@@ -578,8 +594,17 @@
 
       <div class="cycle-goals-panel" id="cycle-goals-panel" hidden>
         <div class="daily-goals-title">Metas do ciclo — <span id="cycle-goals-name"></span></div>
-        <div class="cycle-vehicle-row">
-          <label>🚗 Carro utilizado neste ciclo
+        <div class="form-grid cycle-edit-grid">
+          <label class="full">Nome do ciclo
+            <input type="text" id="cycle-name-edit" maxlength="40">
+          </label>
+          <label>Início
+            <input type="date" id="cycle-start-edit">
+          </label>
+          <label>Fim
+            <input type="date" id="cycle-end-edit">
+          </label>
+          <label class="full">🚗 Carro utilizado neste ciclo
             <input type="text" id="cycle-vehicle-edit" list="vehicle-list" placeholder="ex: Onix 2020 - ABC1D23" maxlength="60">
           </label>
         </div>
@@ -692,12 +717,28 @@
   </section>
   </div>
 
+  <div class="page" id="page-compare" hidden>
+  <section>
+    <h2>Comparar ciclos</h2>
+    <div class="section-sub" style="margin-bottom:14px;">Escolha dois ciclos para ver os resultados lado a lado.</div>
+    <div class="cmp-pickers">
+      <label>Ciclo A<select id="cmp-a"></select></label>
+      <label>Ciclo B<select id="cmp-b"></select></label>
+    </div>
+    <p class="cycle-empty-hint" id="cmp-hint" hidden>Crie pelo menos dois ciclos na aba Ciclos para poder comparar.</p>
+    <div class="cmp-table-wrap" id="cmp-wrap" hidden>
+      <table class="cmp-table" id="cmp-table"></table>
+    </div>
+  </section>
+  </div>
+
   <footer class="note" id="footer-note"></footer>
 </div>
 
 <nav class="bottom-nav" id="bottom-nav">
   <button type="button" class="nav-btn active" data-page="home"><span class="nav-icon">🏠</span><span>Início</span></button>
   <button type="button" class="nav-btn" data-page="cycles"><span class="nav-icon">🔄</span><span>Ciclos</span></button>
+  <button type="button" class="nav-btn" data-page="compare"><span class="nav-icon">📊</span><span>Comparar</span></button>
   <button type="button" class="nav-btn" data-page="add"><span class="nav-icon">➕</span><span>Registrar</span></button>
   <button type="button" class="nav-btn" data-page="history"><span class="nav-icon">🕐</span><span>Histórico</span></button>
 </nav>
@@ -722,6 +763,8 @@
     filterPeriod: "semana",
     selectedCycleId: null,
     selectedDay: todayStr(),
+    cmpA: null,
+    cmpB: null,
     filterApp: "all",
     weeklyGoal: 0,
     storeMode: null
@@ -805,6 +848,9 @@
     var mon = mondayOf(new Date());
     var sun = new Date(mon); sun.setDate(sun.getDate()+6);
     return { start: mon.toISOString().slice(0,10), end: sun.toISOString().slice(0,10) };
+  }
+  function getCycle(id){
+    return state.cycles.find(function(c){ return c.id === id; }) || null;
   }
   function getSelectedCycle(){
     return state.cycles.find(function(c){ return c.id === state.selectedCycleId; }) || null;
@@ -1043,6 +1089,34 @@
     renderDailyGoals();
   }
 
+  async function updateCycleInfo(patch){
+    var cycle = getSelectedCycle();
+    if (!cycle) return;
+    var errorEl = document.getElementById("cycle-error");
+    errorEl.hidden = true;
+    var next = Object.assign({ name: cycle.name, start_date: cycle.start_date, end_date: cycle.end_date }, patch);
+    if (!next.name || !next.start_date || !next.end_date){
+      errorEl.textContent = "Nome, início e fim do ciclo são obrigatórios.";
+      errorEl.hidden = false; renderAll(); return;
+    }
+    if (next.end_date < next.start_date){
+      errorEl.textContent = "A data de fim precisa ser igual ou depois da data de início.";
+      errorEl.hidden = false; renderAll(); return;
+    }
+    Object.assign(cycle, next);
+    if (state.storeMode === "db") {
+      setStatus("saving");
+      try {
+        var res = await sb.from("cycles").update(next).eq("id", cycle.id);
+        if (res.error) throw res.error;
+        setStatus("ok");
+      } catch(e){ setStatus("error", e && e.message); }
+    } else {
+      saveLocalCycles();
+    }
+    renderAll();
+  }
+
   async function updateCycleVehicle(value){
     var cycle = getSelectedCycle();
     if (!cycle) return;
@@ -1167,7 +1241,77 @@
     renderGoal();
     renderChart();
     renderDayCard();
+    renderCompare();
     renderHistory();
+  }
+
+  function daysBetween(start, end){
+    return Math.round((new Date(end + "T00:00:00") - new Date(start + "T00:00:00")) / 86400000) + 1;
+  }
+
+  function renderCompare(){
+    var list = sortedCycles();
+    var selA = document.getElementById("cmp-a"), selB = document.getElementById("cmp-b");
+    var ids = list.map(function(c){ return c.id; });
+    if (ids.indexOf(state.cmpA) === -1) state.cmpA = ids.length > 1 ? ids[1] : (ids[0] || null);
+    if (ids.indexOf(state.cmpB) === -1) state.cmpB = ids[0] || null;
+    var opts = list.map(function(c){
+      return '<option value="'+c.id+'">'+escapeHtml(c.name)+' ('+formatShortRange(c.start_date, c.end_date)+')</option>';
+    }).join("");
+    selA.innerHTML = opts; selB.innerHTML = opts;
+    selA.value = state.cmpA || ""; selB.value = state.cmpB || "";
+
+    var enough = list.length >= 2;
+    document.getElementById("cmp-hint").hidden = enough;
+    document.getElementById("cmp-wrap").hidden = !enough;
+    if (!enough) return;
+
+    var cA = getCycle(state.cmpA), cB = getCycle(state.cmpB);
+    if (!cA || !cB) return;
+    function pack(c){
+      var s = computeStats({ start: c.start_date, end: c.end_date }, "all");
+      s.days = daysBetween(c.start_date, c.end_date);
+      s.netPerDay = s.days > 0 ? s.net / s.days : 0;
+      return s;
+    }
+    var a = pack(cA), b = pack(cB);
+
+    var rows = [
+      { label: "Faturamento", key: "gross", better: "high", fmt: fmtBRL },
+      { label: "Despesas", key: "expenses", better: "low", fmt: fmtBRL },
+      { label: "Líquido", key: "net", better: "high", fmt: fmtBRL },
+      { label: "Líquido por dia", key: "netPerDay", better: "high", fmt: fmtBRL },
+      { label: "Ganho por hora", key: "perHour", better: "high", fmt: fmtBRL },
+      { label: "R$ por km", key: "perKm", better: "high", fmt: fmtBRL },
+      { label: "Km rodados", key: "km", better: null, fmt: function(v){ return fmtNum(v,0) + " km"; } },
+      { label: "Horas", key: "hours", better: null, fmt: function(v){ return fmtNum(v,1) + "h"; } },
+      { label: "Corridas", key: "rides", better: null, fmt: function(v){ return fmtNum(v,0); } },
+      { label: "Dias", key: "days", better: null, fmt: function(v){ return fmtNum(v,0); } }
+    ];
+
+    function head(c){
+      return escapeHtml(c.name) + '<span class="cmp-sub">' + formatShortRange(c.start_date, c.end_date) + '</span>'
+        + '<span class="cmp-sub">' + (c.vehicle ? '🚗 ' + escapeHtml(c.vehicle) : 'sem carro') + '</span>';
+    }
+    var html = '<tr><th></th><th>' + head(cA) + '</th><th>' + head(cB) + '</th><th>B vs A</th></tr>';
+    rows.forEach(function(r){
+      var va = a[r.key], vb = b[r.key];
+      var clsA = "", clsB = "", dCls = "";
+      if (r.better && va !== vb){
+        var bWins = r.better === "high" ? vb > va : vb < va;
+        clsA = bWins ? "lose" : "win";
+        clsB = bWins ? "win" : "lose";
+        dCls = bWins ? "win" : "lose";
+      }
+      var diff = vb - va;
+      var pct = va !== 0 ? (diff / Math.abs(va)) * 100 : null;
+      var sign = diff > 0 ? "+" : "";
+      var deltaTxt = diff === 0 ? "igual" : sign + r.fmt(diff).replace(/^-/, "−");
+      var pctTxt = pct === null ? "" : '<span class="delta ' + dCls + '">' + sign + fmtNum(pct, 0) + '%</span>';
+      html += '<tr><td>' + r.label + '</td><td class="' + clsA + '">' + r.fmt(va) + '</td><td class="' + clsB + '">' + r.fmt(vb)
+        + '</td><td class="' + dCls + '">' + deltaTxt + pctTxt + '</td></tr>';
+    });
+    document.getElementById("cmp-table").innerHTML = html;
   }
 
   function cycleChipHtml(c, withDel){
@@ -1293,6 +1437,10 @@
     document.getElementById("cycle-goals-name").textContent = cycle.name;
     var vehInput = document.getElementById("cycle-vehicle-edit");
     if (document.activeElement !== vehInput) vehInput.value = cycle.vehicle || "";
+    [["cycle-name-edit", cycle.name || ""], ["cycle-start-edit", cycle.start_date], ["cycle-end-edit", cycle.end_date]].forEach(function(p){
+      var el = document.getElementById(p[0]);
+      if (document.activeElement !== el) el.value = p[1];
+    });
 
     var range = { start: cycle.start_date, end: cycle.end_date };
     var stats = computeStats(range, "all");
@@ -1667,6 +1815,13 @@
     document.getElementById("cycle-form-row").hidden = true;
   });
 
+  document.getElementById("cycle-name-edit").addEventListener("change", function(e){ updateCycleInfo({ name: e.target.value.trim() }); });
+  document.getElementById("cycle-start-edit").addEventListener("change", function(e){ updateCycleInfo({ start_date: e.target.value }); });
+  document.getElementById("cycle-end-edit").addEventListener("change", function(e){ updateCycleInfo({ end_date: e.target.value }); });
+
+  document.getElementById("cmp-a").addEventListener("change", function(e){ state.cmpA = e.target.value; renderCompare(); });
+  document.getElementById("cmp-b").addEventListener("change", function(e){ state.cmpB = e.target.value; renderCompare(); });
+
   document.getElementById("cycle-vehicle-edit").addEventListener("change", function(e){
     updateCycleVehicle(e.target.value.trim());
   });
@@ -1833,7 +1988,7 @@
   });
 
   function showPage(page){
-    ["home","cycles","add","history"].forEach(function(p){
+    ["home","cycles","compare","add","history"].forEach(function(p){
       document.getElementById("page-"+p).hidden = p !== page;
     });
     document.querySelectorAll(".nav-btn").forEach(function(b){
