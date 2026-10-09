@@ -416,6 +416,9 @@
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
   .toast.bad{ background:var(--critical); }
+  .brand{ cursor:pointer; }
+  .modal{ position:fixed; inset:0; z-index:80; background:rgba(5,8,15,0.8); display:flex; align-items:center; justify-content:center; padding:20px; }
+  .modal-box{ width:100%; max-width:380px; background:var(--surface); border:1px solid var(--border); border-radius:20px; padding:22px; }
 
   .shift-pill{
     display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; cursor:pointer;
@@ -518,9 +521,9 @@
 <div class="wrap">
   <div class="topbar">
     <div class="brand">
-      <span class="badge"><span class="badge-inner">MG</span></span>
+      <span class="badge"><span class="badge-inner" id="badge-initials">MG</span></span>
       <div>
-        <h1>Olá Matheus</h1>
+        <h1 id="greeting">Olá</h1>
         <p class="tagline">Faça cada km valer</p>
       </div>
     </div>
@@ -908,6 +911,18 @@
   <button type="button" class="nav-btn" data-page="cycles"><span class="nav-icon">🎯</span><span>Ciclos</span></button>
 </nav>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal" id="name-modal" hidden>
+  <form class="modal-box" id="name-form">
+    <h2 style="margin-bottom:6px">Como posso te chamar?</h2>
+    <p class="page-sub" style="margin:0 0 14px">O nome aparece só no seu painel. Você pode trocar quando quiser, tocando no seu nome no topo.</p>
+    <input type="text" id="name-input" class="amount-big" style="font-size:18px;font-weight:600" maxlength="24" placeholder="Seu nome" autocomplete="given-name">
+    <div class="quick-actions" style="margin-top:0">
+      <button type="button" class="btn-soft" id="name-cancel" hidden>Cancelar</button>
+      <button type="submit" class="btn-soft accent">Salvar</button>
+    </div>
+  </form>
+</div>
 
 <datalist id="vehicle-list"></datalist>
 <div class="chart-tooltip" id="chart-tooltip" hidden></div>
@@ -2550,6 +2565,49 @@
     var g = e.target.closest("[data-goto]");
     if (g) showPage(g.getAttribute("data-goto"));
   });
+
+  /* ---- nome do usuário ---- */
+  var NAME_KEY = "meuganho_name";
+  var DEFAULT_NAME = "";
+  var nameMem = "";
+  try { nameMem = (localStorage.getItem(NAME_KEY) || "").trim(); } catch(err){}
+  if (!nameMem){
+    var preset = "";
+    try { preset = (new URLSearchParams(location.search).get("nome") || "").trim().slice(0, 24); } catch(err){}
+    preset = preset || DEFAULT_NAME;
+    if (preset){
+      nameMem = preset;
+      try { localStorage.setItem(NAME_KEY, preset); } catch(err){}
+    }
+  }
+  function getName(){ return nameMem; }
+  function renderName(){
+    var n = getName();
+    document.getElementById("greeting").textContent = n ? "Olá " + n : "Olá!";
+    var words = n.split(/\s+/).filter(Boolean);
+    document.getElementById("badge-initials").textContent = words.length
+      ? (words[0].charAt(0) + (words.length > 1 ? words[words.length-1].charAt(0) : "")).toUpperCase() : "MG";
+  }
+  function openNameModal(canCancel){
+    document.getElementById("name-input").value = getName();
+    document.getElementById("name-cancel").hidden = !canCancel;
+    document.getElementById("name-modal").hidden = false;
+    setTimeout(function(){ document.getElementById("name-input").focus(); }, 50);
+  }
+  document.getElementById("name-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    var n = document.getElementById("name-input").value.trim();
+    if (!n){ document.getElementById("name-input").focus(); return; }
+    nameMem = n;
+    try { localStorage.setItem(NAME_KEY, n); } catch(err){}
+    renderName();
+    document.getElementById("name-modal").hidden = true;
+    toast("Prazer, " + n + "! 👋");
+  });
+  document.getElementById("name-cancel").addEventListener("click", function(){ document.getElementById("name-modal").hidden = true; });
+  document.querySelector(".brand").addEventListener("click", function(){ openNameModal(true); });
+  renderName();
+  if (!getName()) openNameModal(false);
 
   setFormDate(todayStr());
   document.getElementById("footer-note").textContent = "Seus dados ficam guardados neste painel — nada é enviado para o Uber, 99 ou outros apps.";
